@@ -234,7 +234,7 @@ class CheckPlanerAgent:
     def _add_regulation_line_node(self, state: AgentState):
 
         print("state:", state)
-        template_path = "../plans/check_plan_template.xlsx"
+        template_path = "./plans/check_plan_template.xlsx"
         regulation_line = state["regulation"]
         output_file = state["output_file"]
         if not regulation_line:
@@ -297,7 +297,7 @@ class CheckPlanerAgent:
             "max_pages": 0,
             "rg_num": 0,
             "max_rgs": 0,
-            "output_file": f"{folder }/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
+            "output_file": f"{folder }/plan de controle - {filename.lower().replace('.pdf','.xlsx')}",
         }
 
         response = self.graph.invoke(init_state, {"recursion_limit": 10000})
