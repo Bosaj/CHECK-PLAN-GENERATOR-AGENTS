@@ -1,0 +1,100 @@
+lockVersion: 2.0.0
+id: 52e2d7a2-2f97-4e70-8986-88a82de4fadc
+management:
+  docChecksum: 69a05240f15807953280368a889f3c29
+  docVersion: 0.1.0
+  speakeasyVersion: 1.601.3
+  generationVersion: 2.680.0
+  releaseVersion: 0.2.0
+  configChecksum: 9a20a51f10bef358fd04d230ddea9d39
+features:
+  python:
+    additionalDependencies: 1.0.0
+    constsAndDefaults: 1.0.5
+    core: 5.19.8
+    defaultEnabledRetries: 0.2.0
+    envVarSecurityUsage: 0.3.2
+    globalSecurityCallbacks: 1.0.0
+    globalServerURLs: 3.1.1
+    methodArguments: 1.0.2
+    multipartFileContentType: 1.0.0
+    responseFormat: 1.0.1
+    retries: 3.0.2
+    sdkHooks: 1.1.0
+    unions: 3.0.4
+    uploadStreams: 1.0.0
+generatedFiles:
+  - .gitattributes
+  - .vscode/settings.json
+  - USAGE.md
+  - docs/errors/httpvalidationerror.md
+  - docs/models/agentresult.md
+  - docs/models/bodycheckplangeneratorgeneratepost.md
+  - docs/models/hellooutput.md
+  - docs/models/loc.md
+  - docs/models/reglements.md
+  - docs/models/utils/retryconfig.md
+  - docs/models/validationerror.md
+  - docs/sdks/sdk/README.md
+  - poetry.toml
+  - py.typed
+  - pylintrc
+  - pyproject.toml
+  - scripts/publish.sh
+  - src/checkplan_client/__init__.py
+  - src/checkplan_client/_hooks/__init__.py
+  - src/checkplan_client/_hooks/sdkhooks.py
+  - src/checkplan_client/_hooks/types.py
+  - src/checkplan_client/_version.py
+  - src/checkplan_client/basesdk.py
+  - src/checkplan_client/errors/__init__.py
+  - src/checkplan_client/errors/httpvalidationerror.py
+  - src/checkplan_client/errors/no_response_error.py
+  - src/checkplan_client/errors/responsevalidationerror.py
+  - src/checkplan_client/errors/sdkbaseerror.py
+  - src/checkplan_client/errors/sdkerror.py
+  - src/checkplan_client/httpclient.py
+  - src/checkplan_client/models/__init__.py
+  - src/checkplan_client/models/agentresult.py
+  - src/checkplan_client/models/body_check_plan_generator_generate_post.py
+  - src/checkplan_client/models/hellooutput.py
+  - src/checkplan_client/models/validationerror.py
+  - src/checkplan_client/py.typed
+  - src/checkplan_client/sdk.py
+  - src/checkplan_client/sdkconfiguration.py
+  - src/checkplan_client/types/__init__.py
+  - src/checkplan_client/types/basemodel.py
+  - src/checkplan_client/utils/__init__.py
+  - src/checkplan_client/utils/annotations.py
+  - src/checkplan_client/utils/datetimes.py
+  - src/checkplan_client/utils/enums.py
+  - src/checkplan_client/utils/eventstreaming.py
+  - src/checkplan_client/utils/forms.py
+  - src/checkplan_client/utils/headers.py
+  - src/checkplan_client/utils/logger.py
+  - src/checkplan_client/utils/metadata.py
+  - src/checkplan_client/utils/queryparams.py
+  - src/checkplan_client/utils/requestbodies.py
+  - src/checkplan_client/utils/retries.py
+  - src/checkplan_client/utils/security.py
+  - src/checkplan_client/utils/serializers.py
+  - src/checkplan_client/utils/unmarshal_json_response.py
+  - src/checkplan_client/utils/url.py
+  - src/checkplan_client/utils/values.py
+examples:
+  Generate:
+    speakeasy-default-generate:
+      requestBody:
+        multipart/form-data: {"reglements": []}
+      responses:
+        "200":
+          application/json: {"max_pages": 423842, "max_rgs": 634161, "output_file": "<value>", "rg_path": "<value>"}
+        "422":
+          application/json: {}
+  Hello:
+    speakeasy-default-hello:
+      responses:
+        "200":
+          application/json: {"Message": ""}
+examplesVersion: 1.0.2
+generatedTests: {}

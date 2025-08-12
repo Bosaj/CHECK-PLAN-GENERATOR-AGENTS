@@ -1,0 +1,42 @@
+FROM python:3.11-bullseye
+
+WORKDIR /check-planner
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    g++ \
+    curl \
+    unzip \
+    bash \
+    jq \
+    git \
+    tar \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    openssl \
+    build-essential \
+    libc-dev \
+    man-db \
+    groff-base \
+    less \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+
+COPY requirements.txt .
+
+
+RUN pip install -r requirements.txt
+
+ENV MODULE_NAME=check_planner
+ENV ENVIRONMENT=development
+ENV PYTHONUNBUFFERED=1
+
+COPY . .
+
+EXPOSE 8057

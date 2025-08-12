@@ -1,0 +1,18 @@
+python:
+  packageName: checkplan-client
+  sdkClassName: CheckPlanClient
+  version: 0.1.0
+  description: Check Plan Agent API Client SDK for Python
+  author: Speakeasy API
+generate:
+  # baseServerUrl is optional, if not specified it will use the server URL from the OpenAPI document
+  baseServerUrl: http://localhost:8057
+
+javascript:
+  packageName: checkplan-client
+  sdkClassName: CheckPlanClient
+  namespace: "checkplan\\sdk"
+  version: 0.1.0
+generate:
+  # baseServerUrl is optional, if not specified it will use the server URL from the OpenAPI document
+  baseServerUrl: http://localhost:8057

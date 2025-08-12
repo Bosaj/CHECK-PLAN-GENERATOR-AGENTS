@@ -1,0 +1,64 @@
+configVersion: 2.0.0
+generation:
+  sdkClassName: SDK
+  usageSnippets:
+    optionalPropertyRendering: withExample
+    sdkInitStyle: constructor
+  fixes:
+    nameResolutionFeb2025: false
+    parameterOrderingFeb2024: false
+    requestResponseComponentNamesFeb2024: false
+    securityFeb2025: false
+    sharedErrorComponentsApr2025: false
+  auth:
+    oAuth2ClientCredentialsEnabled: false
+    oAuth2PasswordEnabled: false
+  tests:
+    generateTests: true
+    generateNewTests: false
+    skipResponseBodyAssertions: false
+generate:
+  version: ""
+  baseServerUrl: http://localhost:8057
+javascript:
+  version: 0.1.0
+  namespace: checkplan\sdk
+  packageName: checkplan-client
+  sdkClassName: CheckPlanClient
+typescript:
+  version: 0.0.1
+  additionalDependencies:
+    dependencies: {}
+    devDependencies: {}
+    peerDependencies: {}
+  additionalPackageJSON: {}
+  author: Speakeasy
+  baseErrorName: SDKBaseError
+  clientServerStatusCodesAsErrors: false
+  constFieldsAlwaysOptional: true
+  defaultErrorName: SDKError
+  enableCustomCodeRegions: false
+  enableMCPServer: false
+  enableReactQuery: false
+  enumFormat: union
+  flattenGlobalSecurity: true
+  flatteningOrder: parameters-first
+  generateExamples: true
+  imports:
+    option: openapi
+    paths:
+      callbacks: sdk/models/callbacks
+      errors: sdk/models/errors
+      operations: sdk/models/operations
+      shared: sdk/models/shared
+      webhooks: sdk/models/webhooks
+  inputModelSuffix: input
+  jsonpath: legacy
+  maxMethodParams: 0
+  methodArguments: infer-optional-args
+  moduleFormat: dual
+  outputModelSuffix: output
+  packageName: openapi
+  responseFormat: flat
+  templateVersion: v2
+  useIndexModules: true

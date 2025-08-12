@@ -1,0 +1,17 @@
+services:
+  check-planner:
+    env_file:
+      .env
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: check-planner
+    volumes:
+      - .:/check-planner
+    entrypoint: ["uvicorn", "check_planner:app", "--host", "0.0.0.0", "--port", "8057", "--reload"]
+    networks:
+      - check-planner-network
+
+networks:
+  check-planner-network:
+    driver: bridge

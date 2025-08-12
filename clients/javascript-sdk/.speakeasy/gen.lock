@@ -1,0 +1,112 @@
+lockVersion: 2.0.0
+id: 25e52a40-be58-4d54-9ac5-644ac829eab5
+management:
+  docChecksum: 69a05240f15807953280368a889f3c29
+  docVersion: 0.1.0
+  speakeasyVersion: 1.601.3
+  generationVersion: 2.680.0
+  releaseVersion: 0.0.1
+  configChecksum: 815fda68ef518b0e40853e779b78d7a3
+features:
+  typescript:
+    additionalDependencies: 0.1.0
+    constsAndDefaults: 0.1.12
+    core: 3.21.20
+    defaultEnabledRetries: 0.1.0
+    envVarSecurityUsage: 0.1.2
+    globalSecurityCallbacks: 0.1.0
+    globalServerURLs: 2.82.5
+    methodArguments: 0.1.2
+    responseFormat: 0.2.3
+    retries: 2.83.0
+    sdkHooks: 0.3.0
+    unions: 2.85.11
+    uploadStreams: 0.1.0
+generatedFiles:
+  - .gitattributes
+  - .npmignore
+  - FUNCTIONS.md
+  - RUNTIMES.md
+  - USAGE.md
+  - docs/lib/utils/retryconfig.md
+  - docs/sdk/models/operations/generateresponse.md
+  - docs/sdk/models/shared/agentresult.md
+  - docs/sdk/models/shared/bodycheckplangeneratorgeneratepost.md
+  - docs/sdk/models/shared/hellooutput.md
+  - docs/sdk/models/shared/httpvalidationerror.md
+  - docs/sdk/models/shared/loc.md
+  - docs/sdk/models/shared/reglements.md
+  - docs/sdk/models/shared/validationerror.md
+  - docs/sdks/sdk/README.md
+  - eslint.config.mjs
+  - examples/.env.template
+  - examples/README.md
+  - examples/generate.example.ts
+  - examples/package.json
+  - jsr.json
+  - package.json
+  - src/core.ts
+  - src/funcs/generate.ts
+  - src/funcs/hello.ts
+  - src/hooks/hooks.ts
+  - src/hooks/index.ts
+  - src/hooks/types.ts
+  - src/index.ts
+  - src/lib/base64.ts
+  - src/lib/config.ts
+  - src/lib/dlv.ts
+  - src/lib/encodings.ts
+  - src/lib/files.ts
+  - src/lib/http.ts
+  - src/lib/is-plain-object.ts
+  - src/lib/logger.ts
+  - src/lib/matchers.ts
+  - src/lib/primitives.ts
+  - src/lib/retries.ts
+  - src/lib/schemas.ts
+  - src/lib/sdks.ts
+  - src/lib/security.ts
+  - src/lib/url.ts
+  - src/sdk/index.ts
+  - src/sdk/models/errors/httpclienterrors.ts
+  - src/sdk/models/errors/index.ts
+  - src/sdk/models/errors/responsevalidationerror.ts
+  - src/sdk/models/errors/sdkbaseerror.ts
+  - src/sdk/models/errors/sdkerror.ts
+  - src/sdk/models/errors/sdkvalidationerror.ts
+  - src/sdk/models/operations/generate.ts
+  - src/sdk/models/operations/index.ts
+  - src/sdk/models/shared/agentresult.ts
+  - src/sdk/models/shared/bodycheckplangeneratorgeneratepost.ts
+  - src/sdk/models/shared/hellooutput.ts
+  - src/sdk/models/shared/httpvalidationerror.ts
+  - src/sdk/models/shared/index.ts
+  - src/sdk/models/shared/validationerror.ts
+  - src/sdk/sdk.ts
+  - src/sdk/types/async.ts
+  - src/sdk/types/blobs.ts
+  - src/sdk/types/constdatetime.ts
+  - src/sdk/types/enums.ts
+  - src/sdk/types/fp.ts
+  - src/sdk/types/index.ts
+  - src/sdk/types/operations.ts
+  - src/sdk/types/rfcdate.ts
+  - src/sdk/types/streams.ts
+  - tsconfig.json
+examples:
+  Generate:
+    speakeasy-default-generate:
+      requestBody:
+        multipart/form-data: {"reglements": []}
+      responses:
+        "200":
+          application/json: {"max_pages": 423842, "max_rgs": 634161, "output_file": "<value>", "rg_path": "<value>"}
+        "422":
+          application/json: {}
+  Hello:
+    speakeasy-default-hello:
+      responses:
+        "200":
+          application/json: {"Message": ""}
+examplesVersion: 1.0.2
+generatedTests: {}

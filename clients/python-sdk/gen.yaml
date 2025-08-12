@@ -1,0 +1,61 @@
+configVersion: 2.0.0
+generation:
+  sdkClassName: SDK
+  usageSnippets:
+    optionalPropertyRendering: withExample
+    sdkInitStyle: constructor
+  fixes:
+    nameResolutionFeb2025: false
+    parameterOrderingFeb2024: false
+    requestResponseComponentNamesFeb2024: false
+    securityFeb2025: false
+    sharedErrorComponentsApr2025: false
+  auth:
+    oAuth2ClientCredentialsEnabled: false
+    oAuth2PasswordEnabled: false
+  tests:
+    generateTests: true
+    generateNewTests: false
+    skipResponseBodyAssertions: false
+generate:
+  version: ""
+  baseServerUrl: http://localhost:8057
+python:
+  version: 0.2.0
+  additionalDependencies:
+    dev: {}
+    main: {}
+  author: Speakeasy API
+  authors:
+    - Speakeasy
+  baseErrorName: SDKBaseError
+  clientServerStatusCodesAsErrors: true
+  defaultErrorName: SDKError
+  description: Check Plan Agent API Client SDK for Python
+  enableCustomCodeRegions: false
+  enumFormat: enum
+  fixFlags:
+    responseRequiredSep2024: false
+  flattenGlobalSecurity: true
+  flattenRequests: false
+  flatteningOrder: parameters-first
+  imports:
+    option: openapi
+    paths:
+      callbacks: ""
+      errors: errors
+      operations: ""
+      shared: ""
+      webhooks: ""
+  inputModelSuffix: input
+  maxMethodParams: 4
+  methodArguments: infer-optional-args
+  moduleName: ""
+  outputModelSuffix: output
+  packageManager: poetry
+  packageName: checkplan-client
+  pytestFilterWarnings: []
+  pytestTimeout: 0
+  responseFormat: flat
+  sdkClassName: CheckPlanClient
+  templateVersion: v2
