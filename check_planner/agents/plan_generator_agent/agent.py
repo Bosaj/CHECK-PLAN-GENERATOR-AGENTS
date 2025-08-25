@@ -124,7 +124,7 @@ class CheckPlanerAgent:
 
             return {
                 **state,
-                "is_verified": verified.is_verified,
+                "is_verified": verified.is_verified if isinstance(verified, VerifiedRegulation) else False,
                 "rg_num": state.get("rg_num", 0) + 1,
             }
 
