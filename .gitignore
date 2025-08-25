@@ -17,6 +17,9 @@ pyrightconfig.json
 **/.speakeasy/logs/
 .speakeasy/reports
 
+*/.files
+*/translations/
+
 
 /models
 /sdk/models/errors
