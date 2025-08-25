@@ -1,6 +1,9 @@
 import logging
 import os
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 
@@ -22,7 +25,7 @@ def get_llm_groq(
         for key, value in dotenv_values(env_path).items()
         if key.startswith("GROQ_API_KEY")
     ]
-    print("les apis groq sont: ", len(api_keys))
+    logger.info("les apis groq sont: %d", len(api_keys))
     if not api_keys:
         raise ValueError("Aucune clé GROQ_API_KEY trouvée dans le fichier .env")
 

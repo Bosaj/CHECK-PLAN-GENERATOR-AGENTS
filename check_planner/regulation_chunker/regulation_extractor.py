@@ -1,275 +1,373 @@
+# -*- coding: utf-8 -*-
 import re
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-import spacy
+# spaCy optionnel
+try:
+    import spacy
 
-
-@dataclass
-class RegulationSection:
-    """Structure pour représenter une section de réglementation"""
-
-    number: str
-    title: str
-    paragraphs: List[str]
-    level: int  # Niveau hiérarchique (1, 2, 3...)
-    full_number: str  # Numéro complet (ex: "1.2.3")
+    nlp = spacy.load("fr_core_news_sm")
+except Exception:
+    nlp = None
 
 
 class RegulationExtractor:
-    def __init__(self, model_name: str = "fr_core_news_sm"):
-        """
-        Initialise l'extracteur avec le modèle spaCy
 
-        Args:
-            model_name: Nom du modèle spaCy à utiliser
-        """
-        try:
-            self.nlp = spacy.load(model_name)
-        except OSError:
-            print(
-                f"Modèle {model_name} non trouvé. Installez-le avec: python -m spacy download {model_name}"
-            )
-            raise
+    def __init__(self):
 
-        # Patterns regex pour différents formats de numérotation
-        self.section_patterns = [
-            # Format: "1.2.3. Titre" ou "1. Titre"
-            re.compile(r"^(\d+(?:\.\d+)*)\.\s*(.+)$"),
-            # Format: "Article 1.2.3 - Titre" ou "Art. 1 - Titre"
-            re.compile(
-                r"^(?:Article|Art\.?)\s+(\d+(?:\.\d+)*)\s*[-–—]\s*(.+)$", re.IGNORECASE
+        self.patterns: Dict[str, re.Pattern] = {
+            # 1. Titre, 1) Titre, 1- Titre, 15. Titre, 3 Titre
+            "numerique": re.compile(
+                r"^\s*(?P<num>\d+(?:\.\d+)*[\.\)\-]?|\d+)\s+(?P<title>.+?)\s*$"
             ),
-            # Format: "Section 1.2 : Titre"
-            re.compile(r"^Section\s+(\d+(?:\.\d+)*)\s*[:]\s*(.+)$", re.IGNORECASE),
-            # Format: "1.2.3 - Titre" (sans point final)
-            re.compile(r"^(\d+(?:\.\d+)*)\s*[-–—]\s*(.+)$"),
-            # Format: "Titre - 1.2.3" (titre avant numéro)
-            re.compile(r"^(.+?)\s*[-–—]\s*(\d+(?:\.\d+)*)$"),
-            # Format: "I. Titre" ou "II.1. Titre" (numérotation romaine)
-            re.compile(r"^([IVX]+(?:\.\d+)*)\.\s*(.+)$"),
+            # 1.1. Titre, 2.3.4) Titre, 1.2.3.4- Titre (min 2 niveaux)
+            "numerique_hierarchique": re.compile(
+                r"^\s*(?P<num>\d+(?:\.\d+){1,})[\.\)\-]?\s+(?P<title>.+?)\s*$"
+            ),
+            # A. Titre, a) Titre, B- Titre
+            "alphabetique": re.compile(
+                r"^\s*(?P<num>[A-Za-z])[\.\)\-]?\s+(?P<title>.+?)\s*$"
+            ),
+            # AA. Titre, BB- Titre (deux lettres majuscules)
+            "alphabetique_double": re.compile(
+                r"^\s*(?P<num>[A-Z]{2})[\.\)\-]?\s+(?P<title>.+?)\s*$"
+            ),
+            # A1. Titre, B2) Titre, A1.1- Titre (alph-num simple ou hiérarchique)
+            "mixte_alpha_num": re.compile(
+                r"^\s*(?P<num>[A-Z]\d+(?:\.\d+)?)[\.\)\-]?\s+(?P<title>.+?)\s*$"
+            ),
+            # Romains : I. Titre, II) Titre, IV- Titre (majuscules uniquement)
+            "romain": re.compile(
+                r"^\s*"
+                r"(?P<num>M{0,4}(CM|CD|D?C{0,3})?"
+                r"(XC|XL|L?X{0,3})?"
+                r"(IX|IV|V?I{0,3}))"
+                r"[\.\)\-\s]+"
+                r"(?P<title>.+?)\s*$"
+            ),
+            # Mots-clés institutionnels : ARTICLE 2. Titre / SECTION 1 - Titre / CHAPITRE I : Titre
+            "structure_fr": re.compile(
+                r"^\s*(?P<kw>(ARTICLE|SECTION|CHAPITRE|TITRE|PARTIE|LIVRE))\s+"
+                r"(?P<num>(?:\d+(?:\.\d+)*)|[IVXLCM]+|[A-Za-z]+)"
+                r"[\.\:\-\)]?\s+(?P<title>.+?)\s*$",
+                re.IGNORECASE,
+            ),
+            # Puces : • Titre, - Titre, → Titre, ► Titre
+            "puces": re.compile(r"^\s*(?:[•▪▫‣⁃◦▸▹►‎\*\-→►])\s+(?P<title>.+?)\s*$"),
+            # --- Titres sans numérotation (délicat) ---
+            # 1) Mots-clés usuels, très spécifiques (faible faux-positif)
+            "titre_keywords": re.compile(
+                r"^\s*(?P<title>("
+                r"INTRODUCTION|CONCLUSION|R[ÉE]SUM[ÉE]|ABSTRACT|BIBLIOGRAPHIE|"
+                r"R[ÉE]F[ÉE]RENCES|ANNEXE(?:S)?|APPENDICE(?:S)?|PR[ÉE]FACE|"
+                r"AVANT[\-\s]?PROPOS|PROLOGUE|REMERCIEMENTS|GLOSSAIRE|SOMMAIRE|"
+                r"TABLE\s+DES\s+MATI[ÈE]RES"
+                r"))\s*[:：]?\s*$",
+                re.IGNORECASE,
+            ),
+            # 2) Forme générique courte en TitreCase/MAJUSCULES (≤6 mots), fin sans ponctuation forte
+            "titre_sans_numeration": re.compile(
+                r"^\s*(?P<title>("
+                r"(?:[A-ZÀ-ÖØ-Þ]{2,}|[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ0-9’\'\-]+)"
+                r"(?:\s+(?:[A-ZÀ-ÖØ-Þ]{2,}|[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ0-9’\'\-]+)){0,7}"
+                r"))\s*(?:[:：])?\s*(?<![\.!?…])$"
+            ),
+        }
+
+        self.patterns_exclusion = {
+            "code_block": re.compile(r"^\s*```"),
+            "markdown_list": re.compile(r"^\s*[-*+]\s+"),  # listes markdown
+            "horizontal_rule": re.compile(r"^\s*[-*_]{3,}\s*$"),
+            "table_separator": re.compile(r"^\s*\|?:-+:?\|"),  # ---:--- etc.
+            "image_link": re.compile(r"!\[.*?\]\(.*?\)"),
+        }
+
+        # Indicateurs (heuristiques)
+        self.indicateurs_titre = [
+            lambda l: l.isupper() and len(l) > 5,  # beaucoup de MAJ
+            lambda l: l.endswith(":") and len(l) > 5,
+            lambda l: l.count(" ") <= 6 and len(l) > 5,  # court
+            lambda l: bool(re.search(r"\*\*.+\*\*", l)),  # **gras**
+            lambda l: bool(re.search(r"^#{1,6}\s+", l)),  # # markdown
+            lambda l: self._upper_ratio(l) >= 0.7,  # ratio MAJ élevé
         ]
 
-    def _calculate_section_level(self, number: str) -> int:
+        self.indicateurs_tableau = {
+            "mots_cles": ["tableau", "figure", "annexe"],
+            "patterns_ligne": [re.compile(r"\|.*\|"), re.compile(r"\t.*\t")],
+        }
+
+    @staticmethod
+    def _upper_ratio(s: str) -> float:
+        s2 = "".join(ch for ch in s if ch.isalpha())
+        if not s2:
+            return 0.0
+        upp = sum(1 for ch in s2 if ch.isupper())
+        return upp / len(s2)
+
+    @staticmethod
+    def _normalize_line(l: str) -> str:
+        return re.sub(r"\s+", " ", l.strip())
+
+    def est_ligne_tableau(
+        self, ligne: str, contexte: Optional[List[str]] = None
+    ) -> bool:
+        """Heuristiques pour ignorer le contenu de type tableau / décoratif."""
+        l = ligne.strip()
+
+        # Exclusions directes (règles markdown, images, code)
+        for p in self.patterns_exclusion.values():
+            if p.match(l):
+                return True
+
+        # Séparateurs ou structures tabulaires visibles
+        if re.search(r"[\t|]{2,}", l):
+            return True
+
+        # Beaucoup de chiffres / % / colonnes
+        nb_chiffres = len(re.findall(r"\d", l))
+        nb_lettres = len(re.findall(r"[A-Za-z]", l))
+        if nb_chiffres > 0 and nb_chiffres >= max(1, nb_lettres) * 0.7:
+            return True
+
+        if re.search(r"-?\d+(?:[.,]\d+)?\s*%.*-?\d+(?:[.,]\d+)?\s*%", l):
+            return True
+
+        # Contexte
+        if contexte:
+            ctx = " ".join(contexte).lower()
+            if any(k in ctx for k in self.indicateurs_tableau["mots_cles"]):
+                return True
+            if any(p.search(ctx) for p in self.indicateurs_tableau["patterns_ligne"]):
+                return True
+
+        return False
+
+    def detecter_titre_avec_contexte(
+        self, ligne: str, index: int, lignes: List[str]
+    ) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
         """
-        Calcule le niveau hiérarchique basé sur le nombre de points
-
-        Args:
-            number: Numéro de section (ex: "1.2.3")
-
-        Returns:
-            Niveau hiérarchique (1, 2, 3, etc.)
+        Retourne: (est_titre, type_pattern, numero, titre)
         """
-        if re.match(r"^[IVX]+", number):  # Numérotation romaine
-            return number.count(".") + 1
-        return number.count(".") + 1
+        raw = ligne
+        ligne = self._normalize_line(ligne)
+        if len(ligne) < 3:
+            return False, None, None, None
 
-    def _is_section_header(self, line: str) -> Optional[Tuple[str, str, bool]]:
+        # Contexte
+        start = max(0, index - 3)
+        end = min(len(lignes), index + 4)
+        contexte = [
+            self._normalize_line(lignes[i]) for i in range(start, end) if i != index
+        ]
+
+        # Écarter les lignes de tableau
+        if self.est_ligne_tableau(ligne, contexte):
+            return False, None, None, None
+
+        # Patterns nommés
+        for type_nom, pat in self.patterns.items():
+            m = pat.match(ligne)
+            if not m:
+                continue
+
+            # Pour "puces", il n'y a pas toujours de numéro
+            if type_nom == "puces":
+                return True, type_nom, None, m.group("title").strip()
+
+            # Cas "structure_fr": num = "ARTICLE 2" (on reconcatène)
+            if type_nom == "structure_fr":
+                kw = m.group("kw").upper()
+                num = m.group("num")
+                title = m.group("title").strip()
+                return True, type_nom, f"{kw} {num}", title
+
+            # Cas génériques avec (?P<num>) et (?P<title>)
+            num = m.groupdict().get("num")
+            title = m.groupdict().get("title")
+            title = title.strip() if title else None
+
+            # Filtre anti-faux positifs: si le "title" ressemble à une ligne de tableau -> ignorer
+            if title and self.est_ligne_tableau(title, contexte):
+                continue
+
+            return True, type_nom, num, title
+
+        # Heuristiques typographiques (fallback)
+        score = sum(1 for f in self.indicateurs_titre if f(ligne))
+        if score >= 2 and not self.est_ligne_tableau(ligne, contexte):
+            return True, "heuristique", None, ligne
+
+        return False, None, None, None
+
+    def detecter_titre(self, ligne: str) -> Tuple[bool, Optional[str], Optional[str]]:
+        ok, _, num, title = self.detecter_titre_avec_contexte(ligne, 0, [ligne])
+        return ok, num, title
+
+    def _niveau_depuis_numero(
+        self, type_nom: Optional[str], numero: Optional[str]
+    ) -> int:
         """
-        Détermine si une ligne est un en-tête de section
-
-        Args:
-            line: Ligne de texte à analyser
-
-        Returns:
-            Tuple (numéro, titre, titre_avant_numero) ou None
+        Estime un niveau hiérarchique à partir du type de pattern et du numéro détecté.
+        - numerique_hierarchique: profondeur du nombre de points (1.2.3 -> niveau 3)
+        - structure_fr / romain / alphabetiques / numerique: niveau 1 par défaut
+        - mixte_alpha_num: niveau 2 si contient un point (A1.1), sinon 1
+        - puces / heuristique: 1
         """
-        line = line.strip()
+        if not numero:
+            return 1
+        if type_nom == "numerique_hierarchique":
+            return len(numero.split("."))
+        if type_nom == "mixte_alpha_num":
+            return 2 if "." in numero else 1
+        return 1
 
-        for i, pattern in enumerate(self.section_patterns):
-            match = pattern.match(line)
-            if match:
-                if i == 4:  # Pattern "Titre - Numéro"
-                    return match.group(2), match.group(1), True
-                else:
-                    return match.group(1), match.group(2), False
-
-        return None
-
-    def _clean_paragraph(self, paragraph: str) -> str:
+    def analyser_structure(self, texte: str) -> List[Dict]:
         """
-        Nettoie un paragraphe en supprimant les espaces superflus
-
-        Args:
-            paragraph: Paragraphe à nettoyer
-
-        Returns:
-            Paragraphe nettoyé
+        Retourne une liste de sections à plat (ordre d'apparition) :
+        [{numero, titre, contenu, nb_paragraphes, nb_mots, type, niveau}]
         """
-        # Supprime les espaces en début/fin et normalise les espaces
-        cleaned = re.sub(r"\s+", " ", paragraph.strip())
-        return cleaned
-
-    def _merge_continued_paragraphs(self, paragraphs: List[str]) -> List[str]:
-        """
-        Fusionne les paragraphes qui semblent être la continuation d'un précédent
-
-        Args:
-            paragraphs: Liste des paragraphes
-
-        Returns:
-            Liste des paragraphes fusionnés
-        """
-        if not paragraphs:
+        if not texte or not texte.strip():
             return []
 
-        merged = []
-        current_paragraph = paragraphs[0]
+        lignes = [l for l in (texte.splitlines())]
+        sections: List[Dict] = []
+        cur_titre = None
+        cur_num = None
+        cur_type = None
+        cur_niveau = 1
+        buf: List[str] = []
 
-        for i in range(1, len(paragraphs)):
-            paragraph = paragraphs[i]
+        for i, l in enumerate(lignes):
+            ok, type_nom, numero, titre = self.detecter_titre_avec_contexte(
+                l, i, lignes
+            )
 
-            # Si le paragraphe précédent ne finit pas par un point et
-            # que le suivant ne commence pas par une majuscule, on fusionne
-            if (
-                not current_paragraph.endswith(".")
-                and not current_paragraph.endswith(":")
-                and not current_paragraph.endswith(";")
-                and paragraph
-                and not paragraph[0].isupper()
-            ):
-                current_paragraph += " " + paragraph
+            if ok and titre:
+                # Sauver la section courante
+                if cur_titre is not None:
+                    contenu = self._normalize_block("\n".join(buf))
+                    sections.append(
+                        {
+                            "type": cur_type,
+                            "numero": cur_num,
+                            "titre": cur_titre,
+                            "contenu": contenu,
+                            "nb_paragraphes": len(
+                                [p for p in contenu.split("\n") if p.strip()]
+                            ),
+                            "nb_mots": len(contenu.split()),
+                            "niveau": cur_niveau,
+                        }
+                    )
+                # Nouvelle section
+                cur_titre = titre
+                cur_num = numero
+                cur_type = type_nom
+                cur_niveau = self._niveau_depuis_numero(type_nom, numero)
+                buf = []
             else:
-                merged.append(current_paragraph)
-                current_paragraph = paragraph
+                # Contenu
+                buf.append(self._normalize_line(l))
 
-        merged.append(current_paragraph)
-        return merged
+        # Dernière section
+        if cur_titre is not None:
+            contenu = self._normalize_block("\n".join(buf))
+            sections.append(
+                {
+                    "type": cur_type,
+                    "numero": cur_num,
+                    "titre": cur_titre,
+                    "contenu": contenu,
+                    "nb_paragraphes": len(
+                        [p for p in contenu.split("\n") if p.strip()]
+                    ),
+                    "nb_mots": len(contenu.split()),
+                    "niveau": cur_niveau,
+                }
+            )
 
-    def extract_sections(
-        self, text: str, merge_paragraphs: bool = True
-    ) -> List[RegulationSection]:
-        """
-        Extrait les sections numérotées avec leurs titres et paragraphes
-
-        Args:
-            text: Texte à analyser
-            merge_paragraphs: Si True, fusionne les paragraphes continuels
-
-        Returns:
-            Liste des sections extraites
-        """
-        sections = []
-        current_section = None
-        lines = text.splitlines()
-
-        for line in lines:
-            line = line.strip()
-
-            # Ignore les lignes vides
-            if not line:
-                continue
-
-            # Vérifie si c'est un en-tête de section
-            section_info = self._is_section_header(line)
-
-            if section_info:
-                number, title, title_first = section_info
-
-                # Sauvegarde la section précédente
-                if current_section:
-                    if merge_paragraphs and current_section.paragraphs:
-                        current_section.paragraphs = self._merge_continued_paragraphs(
-                            current_section.paragraphs
-                        )
-                    sections.append(current_section)
-
-                # Crée une nouvelle section
-                level = self._calculate_section_level(number)
-                current_section = RegulationSection(
-                    number=number,
-                    title=title.strip(),
-                    paragraphs=[],
-                    level=level,
-                    full_number=number,
-                )
-
-            elif current_section:
-                # Ajoute la ligne comme paragraphe
-                cleaned_line = self._clean_paragraph(line)
-                if cleaned_line:  # Ignore les lignes vides après nettoyage
-                    current_section.paragraphs.append(cleaned_line)
-
-        # Ajoute la dernière section
-        if current_section:
-            if merge_paragraphs and current_section.paragraphs:
-                current_section.paragraphs = self._merge_continued_paragraphs(
-                    current_section.paragraphs
-                )
-            sections.append(current_section)
-
+        # Déduplication simple (titres consécutifs identiques)
+        sections = self._dedupe_sections(sections)
         return sections
 
-    def extract_sections_with_nlp(self, text: str) -> List[RegulationSection]:
+    @staticmethod
+    def _normalize_block(text: str) -> str:
+        lines = [re.sub(r"\s+", " ", l).strip() for l in text.splitlines()]
+        lines = [l for l in lines if l]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _dedupe_sections(sections: List[Dict]) -> List[Dict]:
+        out: List[Dict] = []
+        prev_key = None
+        for s in sections:
+            key = (s.get("numero"), s.get("titre"))
+            if key != prev_key:
+                out.append(s)
+                prev_key = key
+        return out
+
+    def construire_hierarchie(self, sections: List[Dict]) -> Dict:
         """
-        Version avancée utilisant spaCy pour une meilleure analyse
-
-        Args:
-            text: Texte à analyser
-
-        Returns:
-            Liste des sections extraites
+        Construit un arbre hiérarchique à partir des sections à plat.
+        Format :
+        {
+          "children": [
+             { "titre":..., "numero":..., "niveau":1, "contenu":..., "children":[ ... ] },
+             ...
+          ]
+        }
         """
-        doc = self.nlp(text)
-        sections = []
-        current_section = None
+        root = {"children": []}
+        stack = [root]  # pile de niveaux
 
-        # Traite chaque phrase
-        for sent in doc.sents:
-            sent_text = sent.text.strip()
+        for s in sections:
+            node = {
+                "titre": s.get("titre"),
+                "numero": s.get("numero"),
+                "type": s.get("type"),
+                "niveau": s.get("niveau", 1),
+                "contenu": s.get("contenu", ""),
+                "children": [],
+            }
+            lvl = max(1, int(s.get("niveau", 1)))
 
-            if not sent_text:
+            # Ajuster la pile au bon niveau
+            while len(stack) > lvl:
+                stack.pop()
+            while len(stack) < lvl:
+                # créer des placeholders si besoin
+                stack.append({"children": []})
+
+            stack[-1]["children"].append(node)
+            stack.append(node)
+
+        return root
+
+    def analyser_avec_spacy(self, sections: List[Dict]) -> List[Dict]:
+        if not nlp:
+            return sections
+
+        for s in sections:
+            contenu = s.get("contenu", "")
+            if not contenu:
                 continue
-
-            # Vérifie si c'est un en-tête de section
-            section_info = self._is_section_header(sent_text)
-
-            if section_info:
-                number, title, title_first = section_info
-
-                # Sauvegarde la section précédente
-                if current_section:
-                    sections.append(current_section)
-
-                # Crée une nouvelle section
-                level = self._calculate_section_level(number)
-                current_section = RegulationSection(
-                    number=number,
-                    title=title.strip(),
-                    paragraphs=[],
-                    level=level,
-                    full_number=number,
-                )
-
-            elif current_section:
-                # Analyse plus fine avec spaCy
-                cleaned_sent = self._clean_paragraph(sent_text)
-                if cleaned_sent:
-                    current_section.paragraphs.append(cleaned_sent)
-
-        # Ajoute la dernière section
-        if current_section:
-            sections.append(current_section)
-
+            doc = nlp(contenu)
+            s["entites"] = [(e.text, e.label_) for e in doc.ents]
+            mots_cles = [
+                t.lemma_.lower()
+                for t in doc
+                if t.pos_ in ("NOUN", "ADJ") and not t.is_stop
+            ]
+            # Top 10 distincts
+            seen = set()
+            uniq = []
+            for w in mots_cles:
+                if w not in seen:
+                    seen.add(w)
+                    uniq.append(w)
+                if len(uniq) >= 10:
+                    break
+            s["mots_cles"] = uniq
         return sections
-
-    def print_sections(
-        self, sections: List[RegulationSection], max_paragraph_length: int = 200
-    ):
-        """
-        Affiche les sections extraites de manière formatée
-
-        Args:
-            sections: Liste des sections à afficher
-            max_paragraph_length: Longueur maximale d'affichage par paragraphe
-        """
-        for section in sections:
-            indent = "  " * (section.level - 1)
-            print(f"{indent}Section {section.number}: {section.title}")
-
-            for i, paragraph in enumerate(section.paragraphs, 1):
-                truncated = paragraph[:max_paragraph_length]
-                if len(paragraph) > max_paragraph_length:
-                    truncated += "..."
-                print(f"{indent}  Paragraphe {i}: {truncated}")
-            print()

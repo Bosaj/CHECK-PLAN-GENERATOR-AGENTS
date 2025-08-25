@@ -1,26 +1,25 @@
-from checkplan_client import SDK
 import traceback
+
+from checkplan_client import SDK
 
 try:
     with SDK(server_url="http://localhost:8057") as sdk:
         with open(r"../reglements/FT NOVUS GREEN PACK DI_0_0-1-5.pdf", "rb") as f:
-            res = sdk.generate(request={
-                "reglements": [
-                    {
-                        "content": f.read(),  # fichier ouvert en mode binaire
-                        "fileName": "FT NOVUS GREEN PACK DI_0_0-1-5.pdf",
-                        "contentType": "application/json"
-                    }
-                ]
-            })
+            res = sdk.generate(
+                request={
+                    "reglements": [
+                        {
+                            "content": f.read(),  # fichier ouvert en mode binaire
+                            "fileName": "FT NOVUS GREEN PACK DI_0_0-1-5.pdf",
+                            "contentType": "application/json",
+                        }
+                    ]
+                }
+            )
 
         print(res)
 except Exception as e:
     traceback.print_exc()
-
-
-
-
 
 
 """

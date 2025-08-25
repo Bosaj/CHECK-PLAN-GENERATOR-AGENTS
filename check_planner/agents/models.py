@@ -8,31 +8,70 @@ class AgentState(TypedDict):
     current_page_num: int = 0
     max_pages: int
     rg_num: int = 0
+    is_verified: bool
     max_rgs: int
     regulation: dict
     output_file: str
 
 
 class RegulationControl(BaseModel):
+
     article_objet: str = Field(
-        ..., description="Article ou objet du contrôle (ex: Article 1 : Formation)"
+        ...,
+        description=(
+            "Titre exact de l’article ou de la section du règlement "
+            "(ex: 'Article 1 : Formation'). Ne pas reformuler, utiliser "
+            "le libellé tel qu’il apparaît dans le texte."
+        ),
     )
     objectif: str = Field(
-        ..., description="Objectif commençant par un verbe à l’infinitif"
+        ...,
+        description=(
+            "Objectif du contrôle commençant obligatoirement par un verbe "
+            "à l’infinitif suivi du reste de la phrase (ex: 'Vérifier la présence...')."
+        ),
     )
     document_reference: str = Field(
-        ..., description="Document de référence indiqué dans le contexte"
+        ...,
+        description=(
+            "Référence exacte du document indiquée dans la réglementation donnée "
+            "(ex: 'Circulaire AMMC n°XX/XX', 'Directive BCE n°XXX'). "
+            "Ne pas inventer."
+        ),
     )
-    frequence: str = Field(..., description="Fréquence du contrôle")
+    frequence: str = Field(
+        ...,
+        description="Fréquence précise du contrôle (ex: quotidien, mensuel, annuel).",
+    )
     criteres_conformite: str = Field(
-        ..., description="Critères de conformité à respecter"
+        ...,
+        description="Liste claire et opérationnelle des critères de conformité à respecter.",
     )
     documents_requis: str = Field(
-        ..., description="Liste des documents requis pour le contrôle"
+        ...,
+        description="Documents ou références explicitement requis par la réglementation. "
+        "Si le texte mentionne un document, il doit être repris ici.",
     )
     detail_explication: str = Field(
-        ..., description="Détails et explications pour le contrôleur"
+        ..., description="Explications détaillées pour guider le contrôleur pas à pas."
     )
     points_specifiques: str = Field(
-        ..., description="Points spécifiques à contrôler avec détails"
+        ...,
+        description="Points spécifiques et précis à vérifier, extraits ou déduits du texte.",
     )
+
+
+class VerifiedRegulation(BaseModel):
+    is_verified: bool = Field(
+        ...,
+        description="True si le text est un element à controler par le controleur. Sinon False",
+    )
+
+
+class VerifiedAgentState(TypedDict):
+    check_path: str
+    current_rg_num: int = 0
+    max_regs: int
+    is_verified: bool
+    regulation: dict
+    output_file: str

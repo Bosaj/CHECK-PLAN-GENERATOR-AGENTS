@@ -3,9 +3,9 @@
 from typing import Any, Optional
 
 import httpx
+from checkplan_client import errors
 
 from .serializers import unmarshal_json
-from checkplan_client import errors
 
 
 def unmarshal_json_response(

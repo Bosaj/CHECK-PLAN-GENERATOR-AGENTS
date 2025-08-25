@@ -3,14 +3,19 @@ import os
 import sys
 from typing import List
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from check_planner.agents import create_check_plan_generator_agent
+from check_planner.agents import (create_check_plan_generator_agent,
+                                  create_verifier_agent)
 from check_planner.llm import llm_gemini, llm_groq
 from check_planner.models import AgentResult, HelloOutput
 
 try:
     agent = create_check_plan_generator_agent(llm=llm_gemini)
+    verifier_agent = create_verifier_agent(llm=llm_gemini)
 except Exception as e:
     logging.critical(f"Erreur d'instanciation d'agent: {e}")
     sys.exit(1)
@@ -45,7 +50,8 @@ async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> Agen
             reglements_file.append(reglement_path)
 
         result = agent.run(reglements_file[0])
-        result = {**result}
+        verifier_result = verifier_agent.run(result["output_file"])
+        result = {**result, "output_file": verifier_result["output_file"]}
         return AgentResult(**result)
 
     except Exception as e:

@@ -4,38 +4,23 @@ from .regulation_extractor import RegulationExtractor
 
 
 # Fonction de commodité pour rétrocompatibilité
-def chunk_page_regulations(text: str, use_nlp: bool = False) -> List[Dict]:
+# Fonction principale pour utilisation simple
+def chunk_page_regulations(texte: str, hierarchie=False) -> List[Dict]:
     """
-    Version rétrocompatible de la fonction originale
+    Fonction d'entrée principale pour analyser un texte.
 
     Args:
-        text: Texte à analyser
-        use_nlp: Si True, utilise l'analyse spaCy avancée
+        texte: Le texte à analyser
 
     Returns:
-        Liste de dictionnaires représentant les sections
+        Liste des sections avec titres et contenu
     """
-    extractor = RegulationExtractor()
+    analyseur = RegulationExtractor()
+    sections = analyseur.analyser_structure(texte)
 
-    if use_nlp:
-        sections = extractor.extract_sections_with_nlp(text)
-    else:
-        sections = extractor.extract_sections(text)
-
-    # Convertit en format dictionnaire pour compatibilité
-    result = []
-    for section in sections:
-        result.append(
-            {
-                "number": section.number,
-                "title": section.title,
-                "paragraphs": section.paragraphs,
-                "level": section.level,
-                "full_number": section.full_number,
-            }
-        )
-
-    return result
+    if hierarchie:
+        return (sections, analyseur.construire_hierarchie(sections))
+    return sections
 
 
 __ALL__ = ["chunk_page_regulations", "RegulationExtractor"]

@@ -2,6 +2,9 @@ import logging
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def get_llm_gemini(env_path=".env", model_name="gemini-2.5-flash", temperature=0.0):
     import os
@@ -14,7 +17,7 @@ def get_llm_gemini(env_path=".env", model_name="gemini-2.5-flash", temperature=0
         for key, value in dotenv_values(env_path).items()
         if key.startswith("GOOGLE_API_KEY")
     ]
-    print("les api gemini sont: ", len(api_keys))
+    logger.info("les api gemini sont: %d", len(api_keys))
     if not api_keys:
         raise ValueError("Aucune clé GOOGLE_API_KEY trouvée dans le fichier .env")
 
