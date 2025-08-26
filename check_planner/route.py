@@ -37,6 +37,7 @@ async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> Agen
 
     # gestion de fichiers (reglements)
     os.makedirs("reglements", exist_ok=True)
+    os.makedirs("reglements/plans", exist_ok=True)
     try:
 
         if not reglements:

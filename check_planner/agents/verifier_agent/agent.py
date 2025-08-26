@@ -174,12 +174,16 @@ class VerifierAgent:
         """
         folder = os.path.dirname(check_path)  # Chemin du dossier
         filename = os.path.basename(check_path)
+        if "plan_de_controle_" in filename:
+            filename = filename.replace("plan_de_controle_", "plan_de_controle_final_")
+        else:
+            filename = f"plan_de_controle_final_{filename}"
         init_state = {
             "check_path": check_path,
             "current_rg_num": 0,
             "regulation": {},
             "max_regs": 0,
-            "output_file": f"{folder }/plan_de_controle_final_{filename.lower()}",
+            "output_file": f"{folder }/{filename.lower()}",
         }
 
         response = self.graph.invoke(init_state, {"recursion_limit": 10000})

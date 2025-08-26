@@ -322,6 +322,7 @@ class CheckPlanerAgent:
         Agent start flow
         """
         folder = os.path.dirname(rg_path)  # Chemin du dossier
+        plan_folder = os.path.join(folder, "plans")
         filename = os.path.basename(rg_path)
         init_state = {
             "rg_path": rg_path,
@@ -330,7 +331,7 @@ class CheckPlanerAgent:
             "max_pages": 0,
             "rg_num": 0,
             "max_rgs": 0,
-            "output_file": f"{folder }/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
+            "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
         }
 
         response = self.graph.invoke(init_state, {"recursion_limit": 10000})
