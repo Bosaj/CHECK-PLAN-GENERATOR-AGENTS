@@ -168,7 +168,7 @@ class CheckPlanerAgent:
         if state["current_page_num"] + 1 > state["max_pages"]:
             return "finish"
         if self.data_pages[state.get("current_page_num")]["type"] == "image":
-            return "ocr"
+            return "image"
 
         if self.data_pages[state.get("current_page_num")]["type"] == "txt":
             return "continu"
@@ -183,7 +183,7 @@ class CheckPlanerAgent:
                 page["content"].samples,
             )
             text = pytesseract.image_to_string(img)
-            self.data_pages[state["current_page_num"]] = text
+            self.data_pages[state["current_page_num"]]["content"] = text
 
             return state
 
@@ -191,13 +191,13 @@ class CheckPlanerAgent:
             logger.error(f"Error: Tesseract is not installed or not in your PATH.")
             logger.error(f"Please install Tesseract OCR engine.")
 
-            self.data_pages[state["current_page_num"]] = (
+            self.data_pages[state["current_page_num"]]["content"] = (
                 f"Error: Tesseract not found for page {page['number']}"
             )
             return state
         except Exception as e:
             logger.error(f"An error occurred during OCR for page {page['number']}: {e}")
-            self.data_pages[state["current_page_num"]] = (
+            self.data_pages[state["current_page_num"]]["content"] = (
                 f"Error during OCR for page {page['number']}: {e}"
             )
 
