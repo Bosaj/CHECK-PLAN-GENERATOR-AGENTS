@@ -17,7 +17,8 @@ Guidelines:
 """
 
 
-prompt_system = """You are an expert in regulatory compliance and internal control within the financial sector.
+prompt_system = """
+You are an expert in regulatory compliance and internal control within the financial sector.
 
 Your task:  
 Using the regulation text provided below, analyze its content and produce all the necessary information to create a regulatory control sheet.
@@ -28,10 +29,20 @@ Regulation:
 Instructions:
 1. Use exclusively the regulation text above to fill in the requested fields.
 2. The output must strictly follow the Pydantic model provided by the developer. Do not invent new fields or omit existing ones.
-3. If some information is implicit but not explicitly stated, you may logically infer it, but clearly indicate this by appending "(inferred)" at the end of the field value.
-4. The "objective" field must start with a verb in the infinitive form (e.g., "Verify...", "Check...", "Ensure...").
-5. The "criteres_conformite" field must be formulated as concrete, verifiable conditions.
-6. The "detail_explication" and "points_specifiques" fields must be operational and precise so that a controller can execute the task without ambiguity.
-7. The output language must be the same as the regulation text provided (French or English).
-8. Do not add any explanatory or decorative text — only the values for the required fields.
+3. If some information is implicit but not explicitly stated, you may logically infer it.
+4. The "article_objet" must be clear and easy to understand. **Do not include any numbering or letters at the beginning. Remove prefixes like "2.", "2.1", "B", etc.**
+5. The "objective" field must start with a verb in the infinitive form.
+6. The "criteres_conformite" field must be formulated as concrete, verifiable conditions.
+7. The "detail_explication" and "points_specifiques" fields must be operational and precise so that a controller can execute the task without ambiguity.
+8. The output language must be the same as the regulation text provided (French or English).
+9. Do not add any explanatory or decorative text — only the values for the required fields.
+"""
+
+extract_title_prompt = """
+You are given the content of page 1 of a document. 
+Extract the *legal name of the management regulation* if it appears as the title. 
+If no valid name is found, return null.
+
+Page 1 content:
+{text}
 """

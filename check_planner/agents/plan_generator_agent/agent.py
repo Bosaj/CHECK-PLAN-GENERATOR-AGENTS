@@ -13,9 +13,11 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
 from PIL import Image
 
-from check_planner.agents.models import (AgentState, RegulationControl,
+from check_planner.agents.models import (AgentState, ExtractRGName,
+                                         PageChunked, RegulationControl,
                                          VerifiedRegulation)
-from check_planner.agents.prompts import prompt_system, prompt_verified_rg
+from check_planner.agents.prompts import (extract_title_prompt, prompt_system,
+                                          prompt_verified_rg)
 from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
                                llm_groq)
 from check_planner.pdf_splitter import split_pdf
@@ -25,11 +27,20 @@ from check_planner.regulation_chunker import chunk_page_regulations
 class CheckPlanerAgent:
 
     def __init__(self, llm: BaseChatModel = llm_groq):
-        self.llm_params = {"iteration": 0, "type": "groq", "max": 20, "call": "verify"}
+        self.llm_params = {
+            "iteration": 0,
+            "type": "groq",
+            "max": 20,
+            "call": "verify",
+            "chunk_type": "llm",
+        }
         self.llm_gen = llm.with_structured_output(RegulationControl)
         self.llm_ver = llm.with_structured_output(VerifiedRegulation)
+        self.llm = llm
+        self.llm_chunk = llm.with_structured_output(PageChunked)
         self.data_pages = []
         self.regulations = []
+        self.rg_name = ""
 
         # build graph
         self.graph = self._build_graph()
@@ -106,6 +117,37 @@ class CheckPlanerAgent:
 
         try:
             pages_data = split_pdf(pdf_path)
+
+            try:
+                if not self.rg_name and pages_data:
+                    structured_rg_name = self.llm.with_structured_output(ExtractRGName)
+                    page = pages_data[0]
+                    if page.get("type") == "txt":
+                        prompt = extract_title_prompt.format(text=page.get("content"))
+                        rg_name = structured_rg_name.invoke(prompt)
+                    else:
+                        img = Image.frombytes(
+                            "RGB",
+                            [page["content"].width, page["content"].height],
+                            page["content"].samples,
+                        )
+                        text = pytesseract.image_to_string(img)
+                        prompt = extract_title_prompt(text=text)
+                        rg_name = structured_rg_name.invoke(prompt)
+
+                    if not isinstance(rg_name, ExtractRGName) or not rg_name.rg_name:
+                        raise ValueError(
+                            "Erreur d'extraction du nom du règlement de gestion"
+                        )
+                    logger.info("RG NAME -", rg_name)
+                    self.rg_name = rg_name.rg_name
+
+            except Exception as e:
+                logger.error(f"Erreur extraction du nom rg: {e}")
+                self.rg_name = os.path.basename(state.get("rg_path")).replace(
+                    ".pdf", ""
+                )
+
             self.data_pages = pages_data
             return {**state, "max_pages": len(pages_data)}
 
@@ -124,7 +166,11 @@ class CheckPlanerAgent:
 
             return {
                 **state,
-                "is_verified": verified.is_verified if isinstance(verified, VerifiedRegulation) else False,
+                "is_verified": (
+                    verified.is_verified
+                    if isinstance(verified, VerifiedRegulation)
+                    else False
+                ),
                 "rg_num": state.get("rg_num", 0) + 1,
             }
 
@@ -142,17 +188,37 @@ class CheckPlanerAgent:
     def _regulation_line_generation_node(self, state: AgentState):
         if self.regulations:
             regulation_text = self.regulations[state["rg_num"] - 1]
-            text = f"(page {state['current_page_num']+1}){regulation_text['numero']} {regulation_text['titre']}\n{regulation_text['contenu']}"
+
+            if self.llm_params["chunk_type"] == "nlp":
+                text = (
+                    f"({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)].get('number', '?')}))\n"
+                    f"{regulation_text.get('titre', '')}\n"
+                    f"{regulation_text.get('contenu', '')}"
+                )
+            else:
+                text = (
+                    f" RG - ({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)].get('number', '?')}))\n"
+                    f"{regulation_text.get('title', '')}\n"
+                    f"{regulation_text.get('content', '')}"
+                )
+
             full_message = prompt_system.format(regulation=text)
             self.llm_params["call"] = "generate"
             regulation = self._safe_invoke([HumanMessage(content=full_message)])
 
             #
-            state["regulation"] = regulation.model_dump()
+            regulation = regulation.model_dump()
+            regulation = {
+                key: (
+                    value.replace("(inferred)", "") if isinstance(value, str) else value
+                )
+                for key, value in regulation.items()
+            }
+            state["regulation"] = regulation
             logger.info("regulation genere par le llm")
             return {
                 **state,
-                "regulation": regulation.model_dump(),
+                "regulation": regulation,
             }
         return {**state, "regulation": {}}
 
@@ -191,15 +257,15 @@ class CheckPlanerAgent:
             logger.error(f"Error: Tesseract is not installed or not in your PATH.")
             logger.error(f"Please install Tesseract OCR engine.")
 
-            self.data_pages[state["current_page_num"]]["content"] = (
-                f"Error: Tesseract not found for page {page['number']}"
-            )
+            self.data_pages[state["current_page_num"]][
+                "content"
+            ] = f"Error: Tesseract not found for page {page['number']}"
             return state
         except Exception as e:
             logger.error(f"An error occurred during OCR for page {page['number']}: {e}")
-            self.data_pages[state["current_page_num"]]["content"] = (
-                f"Error during OCR for page {page['number']}: {e}"
-            )
+            self.data_pages[state["current_page_num"]][
+                "content"
+            ] = f"Error during OCR for page {page['number']}: {e}"
 
             return state
 
@@ -209,9 +275,21 @@ class CheckPlanerAgent:
             return state
 
         text = self.data_pages[state["current_page_num"]]["content"]
-        regulations = chunk_page_regulations(texte=text)
+
+        try:
+            self.llm_params["call"] = "chunk"
+            chunked = self._safe_invoke([HumanMessage(content=text)])
+
+            if not isinstance(chunked, PageChunked):
+                raise ValueError("Erreur de chunk")
+            regulations = chunked.sections
+            regulations = [section.model_dump() for section in regulations]
+            self.llm_params["chunk_type"] = "llm"
+        except Exception as e:
+            regulations = chunk_page_regulations(texte=text)
+            self.llm_params["chunk_type"] = "nlp"
         self.regulations = regulations
-        logger.info("le nombre de regulations extraits: %d", len(self.regulations))
+        logger.info("le nombre de regulations extraits: ", len(self.regulations))
         return {
             **state,
             "max_rgs": len(self.regulations),
@@ -350,6 +428,8 @@ class CheckPlanerAgent:
 
         self.llm_gen = llm.with_structured_output(RegulationControl)
         self.llm_ver = llm.with_structured_output(VerifiedRegulation)
+        self.llm_chunk = llm.with_structured_output(PageChunked)
+        self.llm = llm
 
     @backoff.on_exception(
         backoff.expo, (ResourceExhausted, Exception), max_tries=7, jitter=None
@@ -359,6 +439,8 @@ class CheckPlanerAgent:
             self.llm_params["iteration"] += 1
             if self.llm_params.get("call") == "verify":
                 return self.llm_ver.invoke(full_messages)
+            elif self.llm_params.get("call") == "chunk":
+                return self.llm_chunk.invoke(full_messages)
             else:
                 return self.llm_gen.invoke(full_messages)
         except ResourceExhausted as e:

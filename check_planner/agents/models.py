@@ -15,13 +15,12 @@ class AgentState(TypedDict):
 
 
 class RegulationControl(BaseModel):
-
     article_objet: str = Field(
         ...,
         description=(
             "Titre exact de l’article ou de la section du règlement "
-            "(ex: 'Article 1 : Formation'). Ne pas reformuler, utiliser "
-            "le libellé tel qu’il apparaît dans le texte."
+            "(ex: 'Article 1 : Formation'). Reformuler si possible, utiliser "
+            "le libellé tel qu’il apparaît dans le texte sans numerotation du début (corrige s'il y'a faute orthographe)."
         ),
     )
     objectif: str = Field(
@@ -34,8 +33,8 @@ class RegulationControl(BaseModel):
     document_reference: str = Field(
         ...,
         description=(
-            "Référence exacte du document indiquée dans la réglementation donnée "
-            "(ex: 'Circulaire AMMC n°XX/XX', 'Directive BCE n°XXX'). "
+            "Référence exacte du document indiquée dans la réglementation donnée, nom du present document(page n°) "
+            "(ex: 'RG NAMA FUND (Article 2), RG NAMA Reglement(page 12) ,Circulaire AMMC n°XX/XX', 'Directive BCE n°XXX', ). "
             "Ne pas inventer."
         ),
     )
@@ -45,7 +44,7 @@ class RegulationControl(BaseModel):
     )
     criteres_conformite: str = Field(
         ...,
-        description="Liste claire et opérationnelle des critères de conformité à respecter.",
+        description="Liste claire et opérationnelle des critères de conformité à respecter mentionné dans le texte.",
     )
     documents_requis: str = Field(
         ...,
@@ -75,3 +74,25 @@ class VerifiedAgentState(TypedDict):
     is_verified: bool
     regulation: dict
     output_file: str
+
+
+class ExtractRGName(BaseModel):
+    rg_name: Optional[str] = Field(
+        None,
+        description=(
+            "The official legal name of the management regulation as displayed in the page title. "
+            "If the name is very long, provide a shortened acronym (e.g., 'NAMA I - FPCC-RFA'). "
+            "⚠️ If no valid name is detected, return `null` and do not invent any value."
+        ),
+    )
+
+
+class Section(BaseModel):
+    title: str = Field(..., description="Titre exact de la section")
+    content: str = Field(..., description="Texte continu correspondant à la section")
+
+
+class PageChunked(BaseModel):
+    sections: List[Section] = Field(
+        ..., description="Liste des sections extraites de la page"
+    )
