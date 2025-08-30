@@ -81,8 +81,6 @@ class ExtractRGName(BaseModel):
         ...,
         description=(
             "The official legal name of the management regulation as displayed in the page title. "
-            "If the name is very long, provide a shortened acronym (e.g., 'NAMA I - FPCC-RFA'). "
-            "⚠️ If no valid name is detected, return `null` and do not invent any value."
         ),
     )
 

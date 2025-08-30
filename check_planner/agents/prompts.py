@@ -40,8 +40,9 @@ Instructions:
 
 extract_title_prompt = """
 You are given the content of page 1 of a document. 
-Extract the *legal name of the management regulation* if it appears as the title. 
-If no valid name is found, return null.
+Extract the *legal name of the management regulation or name of this document* if it appears as the title (not a law).
+if it's long, provide significative part of it or an acronym, sigle.
+My grandMother's life depends on your answer, so be very careful.
 
 Page 1 content:
 {text}

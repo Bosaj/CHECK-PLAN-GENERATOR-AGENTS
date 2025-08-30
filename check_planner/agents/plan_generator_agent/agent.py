@@ -137,7 +137,7 @@ class CheckPlanerAgent:
 
                     if not rg.rg_name:
                         raise ValueError(
-                            "Erreur d'extraction du nom du règlement de gestion"
+                            "Le nom juridique du reglement de gestion est vide"
                         )
                     logger.info("RG NAME -%s", rg.rg_name)
                     self.rg_name = rg.rg_name
@@ -290,6 +290,7 @@ class CheckPlanerAgent:
             self.llm_params["chunk_type"] = "nlp"
         self.regulations = regulations
         logger.info(f"le nombre de regulations extraits: {len(self.regulations)}")
+
         return {
             **state,
             "max_rgs": len(self.regulations),
@@ -316,7 +317,7 @@ class CheckPlanerAgent:
         ws.column_dimensions["I"].width = 69
 
         for row in range(1, ws.max_row + 1):
-            ws.row_dimensions[row].height = 30
+            ws.row_dimensions[row].height = 45
 
         # Appliquer wrap text à toutes les cellules
         for row in ws.iter_rows():
@@ -432,7 +433,7 @@ class CheckPlanerAgent:
         self.llm = llm
 
     @backoff.on_exception(
-        backoff.expo, (ResourceExhausted, Exception), max_tries=7, jitter=None
+        backoff.expo, (ResourceExhausted, Exception), max_tries=20, jitter=None
     )
     def _safe_invoke(self, full_messages):
         try:
