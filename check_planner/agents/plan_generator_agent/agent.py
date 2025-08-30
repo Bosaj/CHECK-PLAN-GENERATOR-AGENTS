@@ -124,7 +124,7 @@ class CheckPlanerAgent:
                     page = pages_data[0]
                     if page.get("type") == "txt":
                         prompt = extract_title_prompt.format(text=page.get("content"))
-                        rg_name = structured_rg_name.invoke(prompt)
+                        rg = structured_rg_name.invoke(prompt)
                     else:
                         img = Image.frombytes(
                             "RGB",
@@ -132,15 +132,15 @@ class CheckPlanerAgent:
                             page["content"].samples,
                         )
                         text = pytesseract.image_to_string(img)
-                        prompt = extract_title_prompt(text=text)
-                        rg_name = structured_rg_name.invoke(prompt)
+                        prompt = extract_title_prompt.format(text=text)
+                        rg = structured_rg_name.invoke(prompt)
 
-                    if not isinstance(rg_name, ExtractRGName) or not rg_name.rg_name:
+                    if not rg.rg_name:
                         raise ValueError(
                             "Erreur d'extraction du nom du règlement de gestion"
                         )
-                    logger.info("RG NAME -", rg_name)
-                    self.rg_name = rg_name.rg_name
+                    logger.info("RG NAME -%s", rg.rg_name)
+                    self.rg_name = rg.rg_name
 
             except Exception as e:
                 logger.error(f"Erreur extraction du nom rg: {e}")
@@ -191,13 +191,13 @@ class CheckPlanerAgent:
 
             if self.llm_params["chunk_type"] == "nlp":
                 text = (
-                    f"({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)].get('number', '?')}))\n"
+                    f"({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)-1].get('number', '?')}))\n"
                     f"{regulation_text.get('titre', '')}\n"
                     f"{regulation_text.get('contenu', '')}"
                 )
             else:
                 text = (
-                    f" RG - ({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)].get('number', '?')}))\n"
+                    f" RG - ({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)-1].get('number', '?')}))\n"
                     f"{regulation_text.get('title', '')}\n"
                     f"{regulation_text.get('content', '')}"
                 )
@@ -289,7 +289,7 @@ class CheckPlanerAgent:
             regulations = chunk_page_regulations(texte=text)
             self.llm_params["chunk_type"] = "nlp"
         self.regulations = regulations
-        logger.info("le nombre de regulations extraits: ", len(self.regulations))
+        logger.info(f"le nombre de regulations extraits: {len(self.regulations)}")
         return {
             **state,
             "max_rgs": len(self.regulations),

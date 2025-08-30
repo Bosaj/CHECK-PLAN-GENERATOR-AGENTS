@@ -78,7 +78,7 @@ class VerifiedAgentState(TypedDict):
 
 class ExtractRGName(BaseModel):
     rg_name: Optional[str] = Field(
-        None,
+        ...,
         description=(
             "The official legal name of the management regulation as displayed in the page title. "
             "If the name is very long, provide a shortened acronym (e.g., 'NAMA I - FPCC-RFA'). "
