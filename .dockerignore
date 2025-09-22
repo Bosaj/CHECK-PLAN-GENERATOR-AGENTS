@@ -1,0 +1,45 @@
+# Environnements virtuels
+.venv
+venv
+
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Fichiers de logs et temporaires
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Cache et artefacts de build
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+
+# Configurations locales
+*.local
+.idea/
+.vscode/
+*.iml
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Tests et rapports locaux
+.coverage
+htmlcov/
+pytest_cache/
+
+# Dossiers Docker inutiles
+.dockerignore
+Dockerfile*
+
+# Autres caches Python
+.mypy_cache/
+.pytest_cache/
+__pypackages__/

@@ -22,6 +22,9 @@ RUN apt-get update && apt-get install -y \
     groff-base \
     less \
     poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-fra \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -33,9 +36,13 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
-ENV MODULE_NAME=check_planner
-ENV ENVIRONMENT=development
-ENV PYTHONUNBUFFERED=1
+ENV MODULE_NAME=check_planner \
+    ENVIRONMENT=development \
+    PYTHONUNBUFFERED=1 \
+    OTEL_SDK_DISABLED=true \
+    OTEL_TRACES_EXPORTER=none \
+    OTEL_METRICS_EXPORTER=none \
+    OTEL_LOG_LEVEL=none
 
 COPY . .
 
