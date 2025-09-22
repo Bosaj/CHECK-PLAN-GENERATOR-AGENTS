@@ -33,8 +33,8 @@ class RegulationControl(BaseModel):
     document_reference: str = Field(
         ...,
         description=(
-            "Référence exacte du document indiquée dans la réglementation donnée, nom du present document(page n°) "
-            "(ex: 'RG NAMA FUND (Article 2), RG NAMA Reglement(page 12) ,Circulaire AMMC n°XX/XX', 'Directive BCE n°XXX', ). "
+            "Référence exacte du document indiquée dans la réglementation donnée, nom de reglement(titre de la section avec numerotation)"
+            "(ex: 'RG NAMA Reglement(Article 1) ,Circulaire AMMC n°XX/XX', 'Directive BCE n°XXX', )."
             "Ne pas inventer."
         ),
     )
@@ -86,11 +86,21 @@ class ExtractRGName(BaseModel):
 
 
 class Section(BaseModel):
-    title: str = Field(..., description="Titre exact de la section")
+    title: str = Field(..., description="Titre exact de la section avec numerotation")
     content: str = Field(..., description="Texte continu correspondant à la section")
 
 
 class PageChunked(BaseModel):
     sections: List[Section] = Field(
         ..., description="Liste des sections extraites de la page"
+    )
+
+class LegislativeReference(BaseModel):
+    """
+    Passage législatif ou réglementaire AMMC trouvé par le RAG.
+    """
+    reference_text: str = Field(...,description=(
+            "Texte complet combinant le titre, l'article, decret  (s'il existe) et le contenu "
+            "pertinent de la loi ou réglementation AMMC."
+        )
     )

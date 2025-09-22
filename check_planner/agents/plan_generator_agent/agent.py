@@ -98,7 +98,7 @@ class CheckPlanerAgent:
 
         return graph.compile()
 
-    def _start_node(self, state: AgentState):
+    async def _start_node(self, state: AgentState):
 
         return {
             **state,
@@ -108,11 +108,11 @@ class CheckPlanerAgent:
             "regulation": {},
         }
 
-    def _process_plan_node(self, state: AgentState):
+    async def _process_plan_node(self, state: AgentState):
         logger.info("Plan de process")
         return {**state, "rg_num": 0}
 
-    def _load_and_split_pages_node(self, state: AgentState):
+    async def _load_and_split_pages_node(self, state: AgentState):
         pdf_path = state["rg_path"]
 
         try:
@@ -155,14 +155,14 @@ class CheckPlanerAgent:
             logger.error(f"Une erreur est survenue : {e}")
             return {**state, "max_pages": 0}
 
-    def _verification_chunk_reg_node(self, state: AgentState):
+    async def _verification_chunk_reg_node(self, state: AgentState):
         if self.regulations:
 
             text = self.regulations[state["rg_num"]]
 
             full_message = prompt_verified_rg.format(text=text)
             self.llm_params["call"] = "verify"
-            verified = self._safe_invoke([HumanMessage(content=full_message)])
+            verified = await self._safe_invoke([HumanMessage(content=full_message)])
 
             return {
                 **state,
@@ -185,7 +185,7 @@ class CheckPlanerAgent:
                 return "return"
             return "none"
 
-    def _regulation_line_generation_node(self, state: AgentState):
+    async def _regulation_line_generation_node(self, state: AgentState):
         if self.regulations:
             regulation_text = self.regulations[state["rg_num"] - 1]
 
@@ -197,14 +197,14 @@ class CheckPlanerAgent:
                 )
             else:
                 text = (
-                    f" RG - ({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)-1].get('number', '?')}))\n"
+                    f" RG - ({self.rg_name})\n"
                     f"{regulation_text.get('title', '')}\n"
                     f"{regulation_text.get('content', '')}"
                 )
 
             full_message = prompt_system.format(regulation=text)
             self.llm_params["call"] = "generate"
-            regulation = self._safe_invoke([HumanMessage(content=full_message)])
+            regulation = await self._safe_invoke([HumanMessage(content=full_message)])
 
             #
             regulation = regulation.model_dump()
@@ -239,7 +239,7 @@ class CheckPlanerAgent:
         if self.data_pages[state.get("current_page_num")]["type"] == "txt":
             return "continu"
 
-    def _page_ocr_node(self, state: AgentState):
+    async def _page_ocr_node(self, state: AgentState):
 
         try:
             page = self.data_pages[state["current_page_num"]]
@@ -269,7 +269,7 @@ class CheckPlanerAgent:
 
             return state
 
-    def _regulation_extractor_node(self, state: AgentState):
+    async def _regulation_extractor_node(self, state: AgentState):
 
         if state["rg_num"] != 0 and len(self.regulations) != (state["rg_num"]):
             return state
@@ -278,7 +278,7 @@ class CheckPlanerAgent:
 
         try:
             self.llm_params["call"] = "chunk"
-            chunked = self._safe_invoke([HumanMessage(content=text)])
+            chunked = await self._safe_invoke([HumanMessage(content=text)])
 
             if not isinstance(chunked, PageChunked):
                 raise ValueError("Erreur de chunk")
@@ -298,12 +298,12 @@ class CheckPlanerAgent:
             "current_page_num": state.get("current_page_num") + 1,
         }
 
-    def _excel_formatter(self, file_path):
+    async def _excel_formatter(self, file_path):
         from openpyxl import load_workbook
         from openpyxl.styles import Alignment
 
         wb = load_workbook(file_path)
-        ws = wb.active
+        ws = wb.activef
 
         # Ajuster largeur de colonnes
         ws.column_dimensions["A"].width = 12
@@ -389,14 +389,14 @@ class CheckPlanerAgent:
             logger.error("Exception: %s", e)
         return state
 
-    def _finish_node(self, state: AgentState):
+    async def _finish_node(self, state: AgentState):
         output = state["output_file"]
         if os.path.exists(output):
-            self._excel_formatter(output)
+            await self._excel_formatter(output)
 
         return state
 
-    def run(self, rg_path: str):
+    async def arun(self, rg_path: str):
         """
         Agent start flow
         """
@@ -413,11 +413,15 @@ class CheckPlanerAgent:
             "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
         }
 
-        response = self.graph.invoke(init_state, {"recursion_limit": 10000})
-        return response
+        try:
+            return await self.graph.ainvoke(init_state, {"recursion_limit": 10000})
+        except Exception as e:
+            return {"output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}", "error": str(e)}
+     
 
-    def _rotate_llm(self):
+    async def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:
+            self.llm_params["iteration"] = 0
             self.llm_params["type"] = (
                 "gemini" if self.llm_params["type"] == "groq" else "groq"
             )
@@ -435,20 +439,20 @@ class CheckPlanerAgent:
     @backoff.on_exception(
         backoff.expo, (ResourceExhausted, Exception), max_tries=20, jitter=None
     )
-    def _safe_invoke(self, full_messages):
+    async def _safe_invoke(self, full_messages):
         try:
             self.llm_params["iteration"] += 1
             if self.llm_params.get("call") == "verify":
-                return self.llm_ver.invoke(full_messages)
+                return await self.llm_ver.ainvoke(full_messages)
             elif self.llm_params.get("call") == "chunk":
-                return self.llm_chunk.invoke(full_messages)
+                return await self.llm_chunk.ainvoke(full_messages)
             else:
-                return self.llm_gen.invoke(full_messages)
+                return await self.llm_gen.ainvoke(full_messages)
         except ResourceExhausted as e:
             logger.warning("[Quota] Clé API dépassée, on change...")
-            self._rotate_llm()
+            await self._rotate_llm()
             raise e
         except Exception as e:
             logger.error(f"[Erreur] {e}, on essaye un autre LLM...")
-            self._rotate_llm()
+            await self._rotate_llm()
             raise e

@@ -50,10 +50,10 @@ async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> Agen
                 f.write(await reglement.read())
             reglements_file.append(reglement_path)
 
-        result = agent.run(reglements_file[0])
-        verifier_result = verifier_agent.run(result["output_file"])
-        result = {**result, "output_file": verifier_result["output_file"]}
-        return AgentResult(**result)
+        result = await agent.arun(reglements_file[0])
+        verifier_result = await verifier_agent.arun(result["output_file"])
+        result_final = {**result, "output_file": verifier_result.get("output_file",result["output_file"])}
+        return AgentResult(**result_final)
 
     except Exception as e:
         logging.exception("Erreur pendant l'exécution de l'agent")

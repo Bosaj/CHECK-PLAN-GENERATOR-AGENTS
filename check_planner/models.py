@@ -8,7 +8,7 @@ class HelloOutput(BaseModel):
 
 
 class AgentResult(BaseModel):
-    rg_path: str
-    max_pages: int
-    max_rgs: int
+    rg_path: Optional[str] = ""
+    max_pages: Optional[int] = 0
+    max_rgs: Optional[int] = 0
     output_file: str
