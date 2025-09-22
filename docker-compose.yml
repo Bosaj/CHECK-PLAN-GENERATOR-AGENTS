@@ -6,9 +6,11 @@ services:
       context: .
       dockerfile: docker/Dockerfile.backend
     container_name: check-planner
+    ports:
+      - "8057:8057"
     volumes:
       - .:/check-planner
-    entrypoint: ["uvicorn", "check_planner:app", "--host", "0.0.0.0", "--port", "8057", "--reload"]
+    entrypoint: ["uvicorn", "check_planner:app", "--host", "0.0.0.0", "--port", "8057"]
     networks:
       - check-planner-network
 

@@ -4,7 +4,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-gemini_models = ["gemini-2.0-flash","gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite","gemini-2.5-pro"]
+gemini_models = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
+]
 
 
 def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):

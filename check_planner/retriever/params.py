@@ -1,7 +1,8 @@
 # params.py
 try:
-    import pysqlite3
     import sys
+
+    import pysqlite3
 
     sys.modules["sqlite3"] = sys.modules["pysqlite3"]
 except ImportError:
@@ -9,9 +10,10 @@ except ImportError:
 
 import os
 import warnings
-from chromadb.config import DEFAULT_TENANT, DEFAULT_DATABASE, Settings
+
 from chromadb import PersistentClient
-from sentence_transformers import SentenceTransformer, CrossEncoder
+from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT, Settings
+from sentence_transformers import CrossEncoder, SentenceTransformer
 
 warnings.filterwarnings("ignore")
 os.environ["CHROMA_TELEMETRY_DISABLED"] = "true"

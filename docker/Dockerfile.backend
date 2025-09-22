@@ -46,4 +46,6 @@ ENV MODULE_NAME=check_planner \
 
 COPY . .
 
+RUN chmod -R 777 reglements/
+
 EXPOSE 8057

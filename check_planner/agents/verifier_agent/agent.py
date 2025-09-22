@@ -12,12 +12,13 @@ from langgraph.graph import END, StateGraph
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from check_planner.agents.models import RegulationControl, VerifiedAgentState, LegislativeReference
+from check_planner.agents.models import (LegislativeReference,
+                                         RegulationControl, VerifiedAgentState)
+from check_planner.agents.prompts import controle_systeme_prompt
 from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
                                llm_groq)
-
 from check_planner.retriever import retrieve_regulation
-from check_planner.agents.prompts import controle_systeme_prompt
+
 
 class VerifierAgent:
 
@@ -91,14 +92,14 @@ class VerifierAgent:
     async def _line_correction_node(self, state: VerifiedAgentState):
         logger.info("correction...")
 
-        reg = self.regulations[state["current_rg_num"]-1]
+        reg = self.regulations[state["current_rg_num"] - 1]
 
         if not all(reg.values()):
 
-            self.regulations[state["current_rg_num"]-1] = {}
-            
+            self.regulations[state["current_rg_num"] - 1] = {}
+
             return state
-    
+
         controle = f"""
         Article / Objet du Contrôle: {reg['Article / Objet du Contrôle']}
         Objectif: {reg['Objectif']}
@@ -115,18 +116,25 @@ class VerifierAgent:
 
             self.llm_params["call"] = "verify"
 
-            LReference = await self._safe_invoke(controle_systeme_prompt.format(controle = controle, retrieved = retrieved))
+            LReference = await self._safe_invoke(
+                controle_systeme_prompt.format(controle=controle, retrieved=retrieved)
+            )
             if not isinstance(LReference, LegislativeReference):
                 raise ValueError("Reference recuperée n'est pas la forme entendu")
 
-            self.regulations[state["current_rg_num"]-1]["Reference de Legislative (AMMC)"] = LReference.reference_text if LReference.reference_text else "Aucun passage réglementaire pertinent n'a été trouvé"
+            self.regulations[state["current_rg_num"] - 1][
+                "Reference de Legislative (AMMC)"
+            ] = (
+                LReference.reference_text
+                if LReference.reference_text
+                else "Aucun passage réglementaire pertinent n'a été trouvé"
+            )
             logger.info("reference ajoutée avec success")
             return state
 
         except Exception as e:
             logger.info(f"Erreur correction node: {e}")
             return state
-
 
     def _should_regulation_continu(self, state: VerifiedAgentState):
 
@@ -157,9 +165,9 @@ class VerifierAgent:
                 logger.error(f"Erreur au niveau de stockage: {e}")
         return state
 
-    async def _excel_formatter(self,file_path):
+    async def _excel_formatter(self, file_path):
         from openpyxl import load_workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
         # Chargement
         wb = load_workbook(file_path)
@@ -170,8 +178,16 @@ class VerifierAgent:
 
         # Ajuster largeur de colonnes
         col_widths = {
-            "A": 12, "B": 33, "C": 42, "D": 32, "E": 21,
-            "F": 40, "G": 37, "H": 63, "I": 69, "J": 69
+            "A": 12,
+            "B": 33,
+            "C": 42,
+            "D": 32,
+            "E": 21,
+            "F": 40,
+            "G": 37,
+            "H": 63,
+            "I": 69,
+            "J": 69,
         }
         for col, width in col_widths.items():
             ws.column_dimensions[col].width = width
@@ -187,13 +203,17 @@ class VerifierAgent:
 
         # Styles
         header_font = Font(bold=True, color="FFFFFF", size=11)
-        header_fill = PatternFill(start_color="628e3d", end_color="628e3d", fill_type="solid")
-        alternate_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")  # gris clair élégant
+        header_fill = PatternFill(
+            start_color="628e3d", end_color="628e3d", fill_type="solid"
+        )
+        alternate_fill = PatternFill(
+            start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"
+        )  # gris clair élégant
         border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
         )
 
         # Appliquer styles
@@ -206,18 +226,19 @@ class VerifierAgent:
                 if row_idx == 1:  # En-tête
                     cell.font = header_font
                     cell.fill = header_fill
-                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                    cell.alignment = Alignment(
+                        horizontal="center", vertical="center", wrap_text=True
+                    )
                 else:  # Corps du tableau
                     if row_idx % 2 == 0:  # lignes paires uniquement
                         cell.fill = alternate_fill
 
         # Ajouter filtre automatique
         ws.auto_filter.ref = ws.dimensions
-        ws.freeze_panes = 'A2'
+        ws.freeze_panes = "A2"
 
         # Sauvegarder
         wb.save(file_path)
-
 
     async def _finish_node(self, state: VerifiedAgentState):
         logger.info("Fin du process...")

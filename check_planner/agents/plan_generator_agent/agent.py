@@ -416,8 +416,10 @@ class CheckPlanerAgent:
         try:
             return await self.graph.ainvoke(init_state, {"recursion_limit": 10000})
         except Exception as e:
-            return {"output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}", "error": str(e)}
-     
+            return {
+                "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
+                "error": str(e),
+            }
 
     async def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:

@@ -52,7 +52,10 @@ async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> Agen
 
         result = await agent.arun(reglements_file[0])
         verifier_result = await verifier_agent.arun(result["output_file"])
-        result_final = {**result, "output_file": verifier_result.get("output_file",result["output_file"])}
+        result_final = {
+            **result,
+            "output_file": verifier_result.get("output_file", result["output_file"]),
+        }
         return AgentResult(**result_final)
 
     except Exception as e:

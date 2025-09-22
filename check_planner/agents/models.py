@@ -95,12 +95,16 @@ class PageChunked(BaseModel):
         ..., description="Liste des sections extraites de la page"
     )
 
+
 class LegislativeReference(BaseModel):
     """
     Passage législatif ou réglementaire AMMC trouvé par le RAG.
     """
-    reference_text: str = Field(...,description=(
+
+    reference_text: str = Field(
+        ...,
+        description=(
             "Texte complet combinant le titre, l'article, decret  (s'il existe) et le contenu "
             "pertinent de la loi ou réglementation AMMC."
-        )
+        ),
     )
