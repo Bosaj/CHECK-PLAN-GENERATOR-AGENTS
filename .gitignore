@@ -51,3 +51,7 @@ pyrightconfig.json
 .env
 .env.local
 .env.*.local
+translations
+chroma-database
+*.pdf
+reglements
