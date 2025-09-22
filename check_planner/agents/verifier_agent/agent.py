@@ -12,16 +12,19 @@ from langgraph.graph import END, StateGraph
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from check_planner.agents.models import RegulationControl, VerifiedAgentState
+from check_planner.agents.models import RegulationControl, VerifiedAgentState, LegislativeReference
 from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
                                llm_groq)
 
+from check_planner.retriever import retrieve_regulation
+from check_planner.agents.prompts import controle_systeme_prompt
 
 class VerifierAgent:
 
     def __init__(self, llm: BaseChatModel = llm_groq):
         self.llm_params = {"iteration": 0, "type": "groq", "max": 20, "call": "verify"}
         self.llm_gen = llm.with_structured_output(RegulationControl)
+        self.controle_llm = llm.with_structured_output(LegislativeReference)
         self.regulations = []
 
         # build graph
@@ -64,7 +67,7 @@ class VerifierAgent:
 
         return {**state, "current_rg_num": 0, "regulation": {}}
 
-    def _load_check_plan_node(self, state: VerifiedAgentState):
+    async def _load_check_plan_node(self, state: VerifiedAgentState):
         logger.info("Chargement du plan de vérification...")
         check_file = state["check_path"]
 
@@ -80,29 +83,59 @@ class VerifierAgent:
 
         return {**state}
 
-    def _process_plan_node(self, state: VerifiedAgentState):
+    async def _process_plan_node(self, state: VerifiedAgentState):
         logger.info("Plan de process")
 
         return {**state, "current_rg_num": state.get("current_rg_num") + 1}
 
-    def _line_correction_node(self, state: VerifiedAgentState):
+    async def _line_correction_node(self, state: VerifiedAgentState):
         logger.info("correction...")
 
-        self.regulations[state["current_rg_num"] - 1] = {}
+        reg = self.regulations[state["current_rg_num"]-1]
 
-        return state
+        if not all(reg.values()):
+
+            self.regulations[state["current_rg_num"]-1] = {}
+            
+            return state
+    
+        controle = f"""
+        Article / Objet du Contrôle: {reg['Article / Objet du Contrôle']}
+        Objectif: {reg['Objectif']}
+        Documents de Référence: {reg['Documents de Référence']}
+        Fréquence: {reg['Fréquence']}
+        Critères de Conformité: {reg['Critères de Conformité']}
+        Documents Requis: {reg['Documents Requis']}
+        Détails et Explications pour le Contrôleur: {reg['Détails et Explications pour le Contrôleur']}
+        Points spécifiques à contrôler avec détails: {reg['Points spécifiques à contrôler avec détails']}
+        """
+
+        try:
+            retrieved = await retrieve_regulation(controle)
+
+            self.llm_params["call"] = "verify"
+
+            LReference = await self._safe_invoke(controle_systeme_prompt.format(controle = controle, retrieved = retrieved))
+            if not isinstance(LReference, LegislativeReference):
+                raise ValueError("Reference recuperée n'est pas la forme entendu")
+
+            self.regulations[state["current_rg_num"]-1]["Reference de Legislative (AMMC)"] = LReference.reference_text if LReference.reference_text else "Aucun passage réglementaire pertinent n'a été trouvé"
+            logger.info("reference ajoutée avec success")
+            return state
+
+        except Exception as e:
+            logger.info(f"Erreur correction node: {e}")
+            return state
+
 
     def _should_regulation_continu(self, state: VerifiedAgentState):
 
         if state["current_rg_num"] >= state["max_regs"]:
             return "stock"
 
-        if all(self.regulations[state["current_rg_num"] - 1].values()):
-            return "plan"
-
         return "correction"
 
-    def _stock_data_node(self, state: VerifiedAgentState):
+    async def _stock_data_node(self, state: VerifiedAgentState):
         logger.info("stockage...")
         output = state["output_file"]
 
@@ -121,54 +154,81 @@ class VerifierAgent:
 
                 return state
             except Exception as e:
-                print(f"Erreur au niveau de stockage: {e}")
+                logger.error(f"Erreur au niveau de stockage: {e}")
         return state
 
-    def _excel_formatter(self, file_path):
+    async def _excel_formatter(self,file_path):
         from openpyxl import load_workbook
-        from openpyxl.styles import Alignment
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
+        # Chargement
         wb = load_workbook(file_path)
         ws = wb.active
 
+        # Renommer la feuille
+        ws.title = "Plan de controle"
+
         # Ajuster largeur de colonnes
-        ws.column_dimensions["A"].width = 12
-        ws.column_dimensions["B"].width = 33
-        ws.column_dimensions["C"].width = 42
-        ws.column_dimensions["D"].width = 32
-        ws.column_dimensions["E"].width = 21
-        ws.column_dimensions["F"].width = 40
-        ws.column_dimensions["G"].width = 37
-        ws.column_dimensions["H"].width = 63
-        ws.column_dimensions["I"].width = 69
+        col_widths = {
+            "A": 12, "B": 33, "C": 42, "D": 32, "E": 21,
+            "F": 40, "G": 37, "H": 63, "I": 69, "J": 69
+        }
+        for col, width in col_widths.items():
+            ws.column_dimensions[col].width = width
 
-        for row in range(1, ws.max_row + 1):
-            ws.row_dimensions[row].height = 30
+        # Ajuster hauteur des lignes
+        # head
 
-        # Appliquer wrap text à toutes les cellules
-        for row in ws.iter_rows():
+        ws.row_dimensions[1].height = 30
 
+        # other lines
+        for row in range(2, ws.max_row + 1):
+            ws.row_dimensions[row].height = 89
+
+        # Styles
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        header_fill = PatternFill(start_color="628e3d", end_color="628e3d", fill_type="solid")
+        alternate_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")  # gris clair élégant
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # Appliquer styles
+        for row_idx, row in enumerate(ws.iter_rows(), start=1):
             for cell in row:
+                # Bordures et wrap text
                 cell.alignment = Alignment(wrap_text=True, vertical="center")
+                cell.border = border
 
-        for cell in ws[1]:
-            cell.alignment = Alignment(
-                horizontal="center", vertical="center", wrap_text=True
-            )
+                if row_idx == 1:  # En-tête
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                else:  # Corps du tableau
+                    if row_idx % 2 == 0:  # lignes paires uniquement
+                        cell.fill = alternate_fill
+
+        # Ajouter filtre automatique
+        ws.auto_filter.ref = ws.dimensions
+        ws.freeze_panes = 'A2'
 
         # Sauvegarder
         wb.save(file_path)
 
-    def _finish_node(self, state: VerifiedAgentState):
+
+    async def _finish_node(self, state: VerifiedAgentState):
         logger.info("Fin du process...")
         output = state["output_file"]
 
         if os.path.exists(output):
-            self._excel_formatter(output)
+            await self._excel_formatter(output)
 
         return state
 
-    def run(self, check_path: str):
+    async def arun(self, check_path: str):
         """
         Agent start flow
         """
@@ -185,12 +245,16 @@ class VerifierAgent:
             "max_regs": 0,
             "output_file": f"{folder }/{filename.lower()}",
         }
+        try:
+            return await self.graph.ainvoke(init_state, {"recursion_limit": 10000000})
+        except Exception as e:
+            logger.error(f"Erreur lors de l'execution de l'agent: {e}")
+            return {"output_file": f"{folder }/{filename.lower()}", "error": str(e)}
 
-        response = self.graph.invoke(init_state, {"recursion_limit": 10000})
-        return response
-
-    def _rotate_llm(self):
+    async def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:
+            self.llm_params["iteration"] = 0
+
             self.llm_params["type"] = (
                 "gemini" if self.llm_params["type"] == "groq" else "groq"
             )
@@ -201,22 +265,23 @@ class VerifierAgent:
             llm = get_llm_gemini()
 
         self.llm_gen = llm.with_structured_output(RegulationControl)
+        self.controle_llm = llm.with_structured_output(LegislativeReference)
 
     @backoff.on_exception(
         backoff.expo, (ResourceExhausted, Exception), max_tries=7, jitter=None
     )
-    def _safe_invoke(self, full_messages):
+    async def _safe_invoke(self, full_messages):
         try:
             self.llm_params["iteration"] += 1
             if self.llm_params.get("call") == "verify":
-                pass
+                return await self.controle_llm.ainvoke(full_messages)
             else:
-                return self.llm_gen.invoke(full_messages)
+                return await self.llm_gen.ainvoke(full_messages)
         except ResourceExhausted as e:
             logger.warning("[Quota] Clé API dépassée, on change...")
-            self._rotate_llm()
+            await self._rotate_llm()
             raise e
         except Exception as e:
             logger.error(f"[Erreur] {e}, on essaye un autre LLM...")
-            self._rotate_llm()
+            await self._rotate_llm()
             raise e
