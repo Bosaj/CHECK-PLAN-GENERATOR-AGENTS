@@ -23,6 +23,21 @@ from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
 from check_planner.pdf_splitter import split_pdf
 from check_planner.regulation_chunker import chunk_page_regulations
 
+def perform_ocr(img: Image.Image) -> str:
+    """Perform OCR using RapidOCR (PaddleOCR ONNX) with Tesseract fallback."""
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        import numpy as np
+        engine = RapidOCR()
+        img_np = np.array(img)
+        result, _ = engine(img_np)
+        if result:
+            return "\n".join([line[1] for line in result])
+    except Exception as e:
+        logger.warning(f"RapidOCR failed, using Tesseract fallback: {e}")
+    return pytesseract.image_to_string(img)
+
+
 
 class CheckPlanerAgent:
 
@@ -131,7 +146,7 @@ class CheckPlanerAgent:
                             [page["content"].width, page["content"].height],
                             page["content"].samples,
                         )
-                        text = pytesseract.image_to_string(img)
+                        text = perform_ocr(img)
                         prompt = extract_title_prompt.format(text=text)
                         rg = structured_rg_name.invoke(prompt)
 
@@ -248,7 +263,7 @@ class CheckPlanerAgent:
                 [page["content"].width, page["content"].height],
                 page["content"].samples,
             )
-            text = pytesseract.image_to_string(img)
+            text = perform_ocr(img)
             self.data_pages[state["current_page_num"]]["content"] = text
 
             return state
