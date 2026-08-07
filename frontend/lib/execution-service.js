@@ -37,14 +37,55 @@ const getCurrentUserId = () => {
 };
 
 // Service d'exécution
+const _formatAnalysisResults = (analysisResults) => {
+  let formattedResults = {
+    fraude: "Non",
+    "Nom du commerce": "inconnu",
+    "Date de la facture": "",
+    "Montant total": 0,
+    "Ville": "",
+    "Adresse complète": "",
+    raison: []
+  };
+
+  if (!analysisResults || typeof analysisResults !== 'object') {
+    formattedResults.timestamp = new Date().toISOString();
+    return formattedResults;
+  }
+
+  if (analysisResults.fraude !== undefined) {
+    formattedResults = { ...analysisResults };
+  } else if (Array.isArray(analysisResults) && analysisResults.length > 0) {
+    formattedResults = { ...analysisResults[0] };
+  } else if (Array.isArray(analysisResults.résultats) && analysisResults.résultats.length > 0) {
+    formattedResults = { ...analysisResults.résultats[0] };
+  } else {
+    Object.keys(analysisResults).forEach(key => {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey.includes('fraude')) formattedResults.fraude = analysisResults[key];
+      if (lowerKey.includes('commerce')) formattedResults["Nom du commerce"] = analysisResults[key];
+      if (lowerKey.includes('date')) formattedResults["Date de la facture"] = analysisResults[key];
+      if (lowerKey.includes('montant')) formattedResults["Montant total"] = analysisResults[key];
+      if (lowerKey.includes('ville')) formattedResults.Ville = analysisResults[key];
+      if (lowerKey.includes('adresse')) formattedResults["Adresse complète"] = analysisResults[key];
+      if (lowerKey.includes('raison') && Array.isArray(analysisResults[key])) {
+        formattedResults.raison = analysisResults[key];
+      }
+    });
+  }
+
+  formattedResults.timestamp = new Date().toISOString();
+  return formattedResults;
+};
+
 const executionService = {
   // Récupérer toutes les exécutions
   getAllExecutions: async () => {
     const cachedData = localStorage.getItem('opti_agent_executions_cache');
     const cacheTimestamp = localStorage.getItem('opti_agent_executions_cache_timestamp');
-    const now = new Date().getTime();
+    const now = Date.now();
     
-    if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 300000) {
+    if (cachedData && cacheTimestamp && (now - Number.parseInt(cacheTimestamp, 10)) < 300000) {
       try {
         const parsedData = JSON.parse(cachedData);
         return parsedData;
@@ -322,63 +363,7 @@ const executionService = {
       console.log('Envoi des résultats au backend:', apiUrl);
       console.log('Résultats envoyés:', JSON.stringify(analysisResults, null, 2));
       
-      // Formater les données dans le format exact attendu par le backend
-      // Le backend attend un objet avec des champs spécifiques au premier niveau
-      let formattedResults = {};
-      
-      // Vérifier si les résultats sont déjà dans le format attendu
-      if (typeof analysisResults === 'object' && analysisResults !== null) {
-        // Extraire les champs spécifiques
-        if (analysisResults.fraude !== undefined) {
-          // Les résultats sont déjà dans le bon format
-          formattedResults = { ...analysisResults };
-        } else if (Array.isArray(analysisResults) && analysisResults.length > 0) {
-          // Si c'est un tableau, prendre le premier élément
-          formattedResults = { ...analysisResults[0] };
-        } else if (analysisResults.résultats && Array.isArray(analysisResults.résultats) && analysisResults.résultats.length > 0) {
-          // Si les résultats sont dans une propriété 'résultats'
-          formattedResults = { ...analysisResults.résultats[0] };
-        } else {
-          // Format inconnu, essayer d'extraire les champs connus
-          formattedResults = {
-            fraude: "Non",
-            "Nom du commerce": "inconnu",
-            "Date de la facture": "",
-            "Montant total": 0,
-            "Ville": "",
-            "Adresse complète": "",
-            raison: []
-          };
-          
-          // Essayer d'extraire les champs connus de l'objet
-          Object.keys(analysisResults).forEach(key => {
-            if (key.toLowerCase().includes('fraude')) formattedResults.fraude = analysisResults[key];
-            if (key.toLowerCase().includes('commerce')) formattedResults["Nom du commerce"] = analysisResults[key];
-            if (key.toLowerCase().includes('date')) formattedResults["Date de la facture"] = analysisResults[key];
-            if (key.toLowerCase().includes('montant')) formattedResults["Montant total"] = analysisResults[key];
-            if (key.toLowerCase().includes('ville')) formattedResults.Ville = analysisResults[key];
-            if (key.toLowerCase().includes('adresse')) formattedResults["Adresse complète"] = analysisResults[key];
-            if (key.toLowerCase().includes('raison') && Array.isArray(analysisResults[key])) {
-              formattedResults.raison = analysisResults[key];
-            }
-          });
-        }
-      } else {
-        // Format invalide, utiliser un format par défaut
-        formattedResults = {
-          fraude: "Non",
-          "Nom du commerce": "inconnu",
-          "Date de la facture": "",
-          "Montant total": 0,
-          "Ville": "",
-          "Adresse complète": "",
-          raison: []
-        };
-      }
-      
-      // Ajouter un timestamp pour garantir que chaque enregistrement est unique
-      formattedResults.timestamp = new Date().toISOString();
-      
+      const formattedResults = _formatAnalysisResults(analysisResults);
       console.log('Résultats formatés:', JSON.stringify(formattedResults, null, 2));
       
       const response = await fetch(apiUrl, {
