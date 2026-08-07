@@ -162,7 +162,7 @@ const executionService = {
   },
   
   // Démarrer une nouvelle exécution
-  startExecution: async (agentId, userId = null) => {
+  startExecution: async (agentId, userId = getCurrentUserId()) => {
     if (!agentId) {
       console.error('ID d\'agent non fourni');
       return null;
@@ -174,21 +174,19 @@ const executionService = {
       console.error('Agent non trouvé');
       return null;
     }
-    
-    // Note: Les règlements sont gérés séparément via fileService.uploadReglementByAgent()
+
+    const localExecution = {
+      id: Date.now().toString(),
+      agentId,
+      userId: userId || getCurrentUserId(),
+      status: 'RUNNING',
+      startTime: new Date().toISOString(),
+      endTime: null,
+      results: {}
+    };
     
     if (USE_LOCAL_STORAGE) {
-      // Créer une nouvelle exécution pour localStorage
-      const execution = {
-        id: Date.now().toString(),
-        agentId,
-        userId: userId || getCurrentUserId(),
-        status: 'RUNNING',
-        startTime: new Date().toISOString(),
-        endTime: null,
-        results: {}
-      };
-      return localStorageService.saveExecution(execution);
+      return localStorageService.saveExecution(localExecution);
     }
     
     try {
@@ -204,16 +202,14 @@ const executionService = {
       });
       
       if (!response.ok) {
-        console.warn(`Erreur HTTP: ${response.status} ${response.statusText}`);
-        // Utiliser le localStorage comme solution de secours
-        return localStorageService.saveExecution(execution);
+        console.warn(`Erreur HTTP: ${response.status} ${response.statusText}, fallback local`);
+        return localStorageService.saveExecution(localExecution);
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur lors du démarrage de l\'exécution:', error);
-      // Utiliser le localStorage comme solution de secours
-      return localStorageService.saveExecution(execution);
+      console.warn("Backend 8081 indisponible for startExecution, using localStorage fallback:", error.message);
+      return localStorageService.saveExecution(localExecution);
     }
   },
   
