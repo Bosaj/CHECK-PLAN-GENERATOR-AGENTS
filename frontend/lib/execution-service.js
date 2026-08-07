@@ -40,26 +40,21 @@ const getCurrentUserId = () => {
 const executionService = {
   // Récupérer toutes les exécutions
   getAllExecutions: async () => {
-    // Vérifier d'abord si nous avons un cache valide
     const cachedData = localStorage.getItem('opti_agent_executions_cache');
     const cacheTimestamp = localStorage.getItem('opti_agent_executions_cache_timestamp');
     const now = new Date().getTime();
     
-    // Utiliser le cache si disponible et pas plus vieux que 5 minutes (300000 ms)
     if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 300000) {
       try {
         const parsedData = JSON.parse(cachedData);
-        console.log('Utilisation du cache pour les exécutions');
         return parsedData;
       } catch (e) {
         console.error('Erreur lors de la lecture du cache:', e);
-        // En cas d'erreur, continuer avec une requête fraîche
       }
     }
     
     if (USE_LOCAL_STORAGE) {
       const executions = localStorageService.getExecutions();
-      // Mettre en cache les résultats
       localStorage.setItem('opti_agent_executions_cache', JSON.stringify(executions));
       localStorage.setItem('opti_agent_executions_cache_timestamp', now.toString());
       return executions;
@@ -72,25 +67,21 @@ const executionService = {
       });
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des exécutions');
+        return localStorageService.getExecutions();
       }
       
       const data = await response.json();
-      
-      // Mettre en cache les résultats
       localStorage.setItem('opti_agent_executions_cache', JSON.stringify(data));
       localStorage.setItem('opti_agent_executions_cache_timestamp', now.toString());
-      
       return data;
     } catch (error) {
-      console.error('Erreur:', error);
-      return [];
+      console.warn("Backend 8081 indisponible for getAllExecutions, using localStorage fallback:", error.message);
+      return localStorageService.getExecutions();
     }
   },
   
-  // Récupérer les exécutions d'un utilisateur
   getExecutionsByUserId: async (userId = getCurrentUserId()) => {
-    if (!userId) return [];
+    if (!userId) return localStorageService.getExecutions();
     
     if (USE_LOCAL_STORAGE) {
       return localStorageService.getExecutionsByUserId(userId);
@@ -103,13 +94,13 @@ const executionService = {
       });
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des exécutions de l\'utilisateur');
+        return localStorageService.getExecutionsByUserId(userId);
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur:', error);
-      return [];
+      console.warn("Backend 8081 indisponible for getExecutionsByUserId, using localStorage fallback:", error.message);
+      return localStorageService.getExecutionsByUserId(userId);
     }
   },
   

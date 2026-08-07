@@ -181,18 +181,18 @@ export const agentService = {
       });
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des agents');
+        return localStorageService.getAllAgents();
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur:', error);
-      return [];
+      console.warn("Backend 8081 indisponible for getAllAgents, using localStorage fallback:", error.message);
+      return localStorageService.getAllAgents();
     }
   },
   
   getAgentsByUserId: async (userId = getCurrentUserId()) => {
-    if (!userId) return [];
+    if (!userId) return localStorageService.getAllAgents();
     
     if (USE_LOCAL_STORAGE) {
       return localStorageService.getAgentsByUserId(userId);
@@ -205,14 +205,13 @@ export const agentService = {
       });
       
       if (!response.ok) {
-        console.warn(`Erreur HTTP: ${response.status} ${response.statusText}`);
-        return [];
+        return localStorageService.getAgentsByUserId(userId);
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur lors de la récupération des agents:', error);
-      return [];
+      console.warn("Backend 8081 indisponible for getAgentsByUserId, using localStorage fallback:", error.message);
+      return localStorageService.getAgentsByUserId(userId);
     }
   },
   
@@ -228,18 +227,17 @@ export const agentService = {
       });
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de l\'agent');
+        return localStorageService.getAgentById(id);
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur:', error);
-      return null;
+      console.warn("Backend 8081 indisponible for getAgentById, using localStorage fallback:", error.message);
+      return localStorageService.getAgentById(id);
     }
   },
   
   createAgent: async (agentData) => {
-    // Ajouter l'ID de l'utilisateur actuel si disponible
     const userId = getCurrentUserId();
     const agentWithUserId = userId ? { ...agentData, userId } : agentData;
     
@@ -255,15 +253,13 @@ export const agentService = {
       });
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la création de l\'agent');
+        return localStorageService.createAgent(agentWithUserId);
       }
       
-      // Récupérer les données de l'agent créé
-      const createdAgent = await response.json();
-      return createdAgent;
+      return await response.json();
     } catch (error) {
-      console.error('Erreur:', error);
-      return null;
+      console.warn("Backend 8081 indisponible for createAgent, using localStorage fallback:", error.message);
+      return localStorageService.createAgent(agentWithUserId);
     }
   },
   

@@ -154,8 +154,8 @@ export const fileService = {
           credentials: 'include' // Important pour les cookies d'authentification
         });
       } catch (networkError) {
-        console.error('Erreur réseau lors de la requête:', networkError);
-        throw new Error('Erreur de connexion au serveur');
+        console.warn('Backend 8081 indisponible, fallback vers localStorage:', networkError);
+        return localStorageService.getReglementByAgentId(agentId);
       }
       
       console.log('Réponse reçue:', {
