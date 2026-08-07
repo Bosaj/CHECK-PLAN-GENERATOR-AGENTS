@@ -254,11 +254,6 @@ const executionService = {
     }
   },
   
-  completeExecution: async (id, message = 'Exécution terminée avec succès', notes = '') => {
-    if (!id) return null;
-    return await executionService.updateExecutionStatus(id, 'TERMINÉ', { message, notes });
-  },
-
   // Mettre à jour le statut d'une exécution
   updateExecutionStatus: async (id, status, results = {}) => {
     if (!id) {
@@ -310,6 +305,7 @@ const executionService = {
         execution.results = { ...execution.results, ...results };
         return localStorageService.saveExecution(execution);
       } catch (e) {
+        console.debug("Erreur sauvegarde localStorage:", e);
         return null;
       }
     }

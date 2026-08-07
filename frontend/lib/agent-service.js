@@ -191,6 +191,7 @@ export const agentService = {
       
       return await response.json();
     } catch (error) {
+      console.debug("Backend indisponible for getAllAgents, using localStorage fallback:", error);
       return localStorageService.getAllAgents();
     }
   },
@@ -219,6 +220,7 @@ export const agentService = {
       
       return await response.json();
     } catch (error) {
+      console.debug("Backend indisponible for getAgentsByUserId, using localStorage fallback:", error);
       return localStorageService.getAgentsByUserId(userId);
     }
   },

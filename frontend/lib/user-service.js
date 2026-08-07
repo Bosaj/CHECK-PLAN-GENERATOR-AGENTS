@@ -142,6 +142,7 @@ export const userService = {
           failedExecutions
         };
       } catch (e) {
+        console.debug("Local stats calculation error:", e);
         return { totalAgents: 0, totalExecutions: 0, successfulExecutions: 0, failedExecutions: 0 };
       }
     };
@@ -174,6 +175,7 @@ export const userService = {
       
       return await response.json();
     } catch (error) {
+      console.debug("API stats fetch error, falling back to local:", error);
       return getLocalStats();
     }
   },
@@ -192,7 +194,7 @@ export const userService = {
   
   // Définir l'utilisateur courant (pour la simulation de connexion)
   setCurrentUser: (user) => {
-    if (!user || !user.id) return;
+    if (!user?.id) return;
     
     localStorage.setItem('userId', user.id);
     localStorage.setItem('currentUser', JSON.stringify(user));
