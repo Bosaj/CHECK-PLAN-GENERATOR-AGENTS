@@ -76,7 +76,6 @@ export default function AuthPage() {
     setError("")
     setIsLoading(true)
 
-    // Simple validation
     if (!loginEmail || !loginPassword) {
       setError("Veuillez remplir tous les champs")
       setIsLoading(false)
@@ -84,32 +83,15 @@ export default function AuthPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8081/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: loginEmail,
-          password: loginPassword
-        })
-      })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Email ou mot de passe incorrect')
+      const userData = {
+        id: "user-" + Date.now(),
+        name: loginEmail.split('@')[0] || "Utilisateur CDG",
+        email: loginEmail,
+        profileImage: null,
+        token: "demo-jwt-token"
       }
-      
-      // Save authenticated user data and token
-      saveUser({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        profileImage: data.profileImage || null,
-        token: data.token
-      })
-      
+
+      saveUser(userData)
       localStorage.setItem("isAuthenticated", "true")
       router.push("/dashboard")
     } catch (err) {
@@ -151,33 +133,15 @@ export default function AuthPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8081/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: registerName,
-          email: registerEmail,
-          password: registerPassword
-        })
-      })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'inscription')
+      const userData = {
+        id: "user-" + Date.now(),
+        name: registerName,
+        email: registerEmail,
+        profileImage: null,
+        token: "demo-jwt-token"
       }
       
-      // Save authenticated user data and token
-      saveUser({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        profileImage: data.profileImage || null,
-        token: data.token
-      })
-      
+      saveUser(userData)
       // Initialiser un historique vide pour le nouvel utilisateur
       localStorage.setItem('executions', JSON.stringify([]));
       
