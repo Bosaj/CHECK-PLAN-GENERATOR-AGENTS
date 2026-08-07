@@ -175,10 +175,15 @@ export const agentService = {
     }
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 400);
+
       const response = await fetch(`${API_URL}/agents`, {
         method: 'GET',
-        headers: getHeaders()
+        headers: getHeaders(),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         return localStorageService.getAllAgents();
@@ -186,7 +191,6 @@ export const agentService = {
       
       return await response.json();
     } catch (error) {
-      console.warn("Backend 8081 indisponible for getAllAgents, using localStorage fallback:", error.message);
       return localStorageService.getAllAgents();
     }
   },
@@ -199,10 +203,15 @@ export const agentService = {
     }
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 400);
+
       const response = await fetch(`${API_URL}/agents/user/${userId}`, {
         method: 'GET',
-        headers: getHeaders()
+        headers: getHeaders(),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         return localStorageService.getAgentsByUserId(userId);
@@ -210,7 +219,6 @@ export const agentService = {
       
       return await response.json();
     } catch (error) {
-      console.warn("Backend 8081 indisponible for getAgentsByUserId, using localStorage fallback:", error.message);
       return localStorageService.getAgentsByUserId(userId);
     }
   },

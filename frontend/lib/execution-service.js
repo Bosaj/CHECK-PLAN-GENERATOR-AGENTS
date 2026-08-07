@@ -254,6 +254,11 @@ const executionService = {
     }
   },
   
+  completeExecution: async (id, message = 'Exécution terminée avec succès', notes = '') => {
+    if (!id) return null;
+    return await executionService.updateExecutionStatus(id, 'TERMINÉ', { message, notes });
+  },
+
   // Mettre à jour le statut d'une exécution
   updateExecutionStatus: async (id, status, results = {}) => {
     if (!id) {
@@ -280,34 +285,31 @@ const executionService = {
       execution.endTime = new Date().toISOString();
       execution.results = { ...execution.results, ...results };
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      
       const response = await fetch(`${API_URL}/executions/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(execution)
+        body: JSON.stringify(execution),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
-        console.warn(`Erreur HTTP: ${response.status} ${response.statusText}`);
-        // Utiliser le localStorage comme solution de secours
         return localStorageService.saveExecution(execution);
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'exécution:', error);
-      
-      // Essayer de mettre à jour en localStorage comme solution de secours
+      console.warn("Backend 8081 indisponible for updateExecutionStatus, using localStorage fallback:", error.message);
       try {
-        const execution = localStorageService.getExecutionById(id);
-        if (!execution) return null;
-        
+        const execution = localStorageService.getExecutionById(id) || { id, status, endTime: new Date().toISOString(), results };
         execution.status = status;
         execution.endTime = new Date().toISOString();
         execution.results = { ...execution.results, ...results };
-        
         return localStorageService.saveExecution(execution);
       } catch (e) {
-        console.error('Erreur lors de la mise à jour en localStorage:', e);
         return null;
       }
     }

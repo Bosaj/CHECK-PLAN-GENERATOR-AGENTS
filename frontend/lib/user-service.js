@@ -127,53 +127,54 @@ export const userService = {
   
   // Récupérer les statistiques d'un utilisateur
   getUserStats: async (userId = getCurrentUserId(), forceRecalculate = false) => {
-    if (!userId) return null;
+    const getLocalStats = () => {
+      try {
+        const agents = JSON.parse(localStorage.getItem('agents') || '[]');
+        const executions = JSON.parse(localStorage.getItem('executions') || '[]');
+        const userAgents = userId ? agents.filter(a => a.userId === userId) : agents;
+        const userExecutions = userId ? executions.filter(e => e.userId === userId) : executions;
+        const successfulExecutions = userExecutions.filter(e => e.status === 'TERMINÉ' || e.status === 'SUCCESS').length;
+        const failedExecutions = userExecutions.filter(e => e.status === 'ÉCHOUÉ' || e.status === 'FAILED').length;
+        return {
+          totalAgents: userAgents.length,
+          totalExecutions: userExecutions.length,
+          successfulExecutions,
+          failedExecutions
+        };
+      } catch (e) {
+        return { totalAgents: 0, totalExecutions: 0, successfulExecutions: 0, failedExecutions: 0 };
+      }
+    };
+
+    if (!userId) return getLocalStats();
     
     if (USE_LOCAL_STORAGE) {
-      const user = localStorageService.getUserById(userId);
-      if (!user) return null;
-      
-      return {
-        totalAgents: user.totalAgents || 0,
-        totalExecutions: user.totalExecutions || 0,
-        successfulExecutions: user.successfulExecutions || 0,
-        failedExecutions: user.failedExecutions || 0
-      };
+      return getLocalStats();
     }
     
     try {
-      // Construire l'URL avec le paramètre de recalcul si nécessaire
       let url = `${API_URL}/users/${userId}/stats`;
       if (forceRecalculate) {
         url += '?recalculate=true';
       }
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 400);
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: getHeaders()
+        headers: getHeaders(),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
-        console.warn(`Erreur HTTP: ${response.status} ${response.statusText}`);
-        // Retourner un objet de statistiques vide en cas d'erreur
-        return {
-          totalAgents: 0,
-          totalExecutions: 0,
-          successfulExecutions: 0,
-          failedExecutions: 0
-        };
+        return getLocalStats();
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques utilisateur:', error);
-      // Retourner un objet de statistiques vide en cas d'erreur
-      return {
-        totalAgents: 0,
-        totalExecutions: 0,
-        successfulExecutions: 0,
-        failedExecutions: 0
-      };
+      return getLocalStats();
     }
   },
   
