@@ -3,6 +3,8 @@ import os
 import sys
 from typing import List
 
+import aiofiles
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,14 @@ async def hello() -> HelloOutput:
     )
 
 
+@router.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "check-planner"}
+
+
+
 @router.post("/generate", response_model=AgentResult)
-async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> AgentResult:
+async def check_plan_generator(reglements: List[UploadFile] = File(...)) -> AgentResult:
 
     # gestion de fichiers (reglements)
     os.makedirs("reglements", exist_ok=True)
@@ -46,8 +54,9 @@ async def Check_Plan_Generator(reglements: List[UploadFile] = File(...)) -> Agen
         reglements_file = []
         for reglement in reglements:
             reglement_path = f"reglements/{reglement.filename}"
-            with open(reglement_path, "wb") as f:
-                f.write(await reglement.read())
+            async with aiofiles.open(reglement_path, "wb") as f:
+                content = await reglement.read()
+                await f.write(content)
             reglements_file.append(reglement_path)
 
         result = await agent.arun(reglements_file[0])

@@ -20,11 +20,7 @@ os.environ["CHROMA_TELEMETRY_DISABLED"] = "true"
 
 PERSIST_DIR = "rag/chroma-database"
 
-if not os.path.isdir(PERSIST_DIR):
-    raise FileNotFoundError(
-        "Le répertoire de la base de données Chroma n'existe pas. "
-        "Veuillez voir developper/README.md pour les instructions."
-    )
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 bi_encoder = SentenceTransformer("intfloat/multilingual-e5-large")
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
