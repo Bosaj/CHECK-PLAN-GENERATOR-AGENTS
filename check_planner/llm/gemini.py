@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 gemini_models = [
     "gemini-2.0-flash",
     "gemini-1.5-flash",
-    "gemini-1.5-pro",
 ]
 
 def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):
@@ -35,14 +34,15 @@ def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):
         selected_key = secrets.choice(api_keys)
         os.environ["GOOGLE_API_KEY"] = selected_key
 
-    model_name = secrets.choice(models)
+    # Always use the fastest flash model first
+    model_name = models[0] if models else "gemini-2.0-flash"
     logger.info("Used model: %s", model_name)
 
     try:
         return ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature,
-            max_retries=3,
+            max_retries=1,
             api_key=selected_key if selected_key else None,
         )
     except Exception:
