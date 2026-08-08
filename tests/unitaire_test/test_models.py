@@ -60,13 +60,13 @@ def test_regulation_control_model():
 
 def test_section_and_page_chunked_model():
     """Test Section and PageChunked Pydantic models."""
-    sec1 = Section(titre="Section 1", contenu="Contenu de la section 1")
-    sec2 = Section(titre="Section 2", contenu="Contenu de la section 2")
+    sec1 = Section(title="Section 1", content="Contenu de la section 1")
+    sec2 = Section(title="Section 2", content="Contenu de la section 2")
     chunked = PageChunked(sections=[sec1, sec2])
     
     assert len(chunked.sections) == 2
-    assert chunked.sections[0].titre == "Section 1"
-    assert chunked.sections[1].contenu == "Contenu de la section 2"
+    assert chunked.sections[0].title == "Section 1"
+    assert chunked.sections[1].content == "Contenu de la section 2"
 
 
 def test_verified_regulation_model():

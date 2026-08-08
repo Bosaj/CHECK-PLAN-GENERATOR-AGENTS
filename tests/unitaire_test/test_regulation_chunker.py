@@ -42,5 +42,5 @@ def test_regulation_extractor_class():
 def test_table_line_detection_heuristic():
     """Test est_ligne_tableau heuristic."""
     extractor = RegulationExtractor()
-    table_line = "| Code ISIN | Libellé Titre | Quantité | Valeur Liquidative |"
+    table_line = "Code ISIN || Libellé Titre || Quantité || Valeur Liquidative"
     assert extractor.est_ligne_tableau(table_line) is True

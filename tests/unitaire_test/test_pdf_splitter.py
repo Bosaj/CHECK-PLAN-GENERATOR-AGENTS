@@ -17,12 +17,12 @@ def test_pdf_splitter_heuristics():
     """Test PDFSplitter table detection heuristic."""
     splitter = PDFSplitter()
     short_line = [{"x0": 10, "x1": 20, "texte": "word"}]
-    assert splitter.est_probable_tableau(short_line) is False
+    assert splitter.detecter_tableau(short_line, [], 0) is False
 
     table_line = [
         {"x0": 10, "x1": 30, "texte": "Col1"},
         {"x0": 80, "x1": 100, "texte": "Col2"},
         {"x0": 150, "x1": 170, "texte": "Col3"},
     ]
-    assert splitter.est_probable_tableau(table_line) is True
+    assert splitter.detecter_tableau(table_line, [], 0) is True
 
