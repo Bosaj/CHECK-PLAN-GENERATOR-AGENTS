@@ -1,9 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies for OCR and PyMuPDF
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Upgrade system packages for security patches and install dependencies
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-fra \
     libgl1 \
@@ -11,11 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy python project definition
 COPY pyproject.toml .
 RUN pip install --no-cache-dir hatchling && pip install --no-cache-dir -e .
 
-# Copy application source
 COPY check_planner/ check_planner/
 
 EXPOSE 8000
