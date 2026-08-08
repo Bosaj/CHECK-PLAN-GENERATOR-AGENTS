@@ -55,3 +55,6 @@ translations
 chroma-database
 *.pdf
 reglements
+plans/
+*.xlsx
+uploads/
