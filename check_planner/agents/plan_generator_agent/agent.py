@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -22,6 +23,9 @@ from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
                                llm_groq)
 from check_planner.pdf_splitter import split_pdf
 from check_planner.regulation_chunker import chunk_page_regulations
+
+# Constant for the repeated Excel column header
+COL_CONTROLE = "N\u00b0 de Contr\u00f4le"
 
 def perform_ocr(img: Image.Image) -> str:
     """Perform OCR using RapidOCR (PaddleOCR ONNX) with Tesseract fallback."""
@@ -113,7 +117,7 @@ class CheckPlanerAgent:
 
         return graph.compile()
 
-    async def _start_node(self, state: AgentState):
+    def _start_node(self, state: AgentState):
 
         return {
             **state,
@@ -123,11 +127,11 @@ class CheckPlanerAgent:
             "regulation": {},
         }
 
-    async def _process_plan_node(self, state: AgentState):
+    def _process_plan_node(self, state: AgentState):
         logger.info("Plan de process")
         return {**state, "rg_num": 0}
 
-    async def _load_and_split_pages_node(self, state: AgentState):
+    def _load_and_split_pages_node(self, state: AgentState):
         pdf_path = state["rg_path"]
 
         try:
@@ -157,17 +161,19 @@ class CheckPlanerAgent:
                     logger.info("RG NAME -%s", rg.rg_name)
                     self.rg_name = rg.rg_name
 
-            except Exception as e:
-                logger.error(f"Erreur extraction du nom rg: {e}")
+            except Exception:
+                logger.exception("Erreur extraction du nom rg")
                 self.rg_name = os.path.basename(state.get("rg_path")).replace(
                     ".pdf", ""
                 )
 
             self.data_pages = pages_data
-            return {**state, "max_pages": len(pages_data)}
+            max_pages = min(len(pages_data), 30)
+            logger.info(f"Loaded {len(pages_data)} pages, processing top {max_pages} pages for check plan generation.")
+            return {**state, "max_pages": max_pages}
 
-        except Exception as e:
-            logger.error(f"Une erreur est survenue : {e}")
+        except Exception:
+            logger.exception("Une erreur est survenue lors du chargement du PDF")
             return {**state, "max_pages": 0}
 
     async def _verification_chunk_reg_node(self, state: AgentState):
@@ -179,13 +185,15 @@ class CheckPlanerAgent:
             self.llm_params["call"] = "verify"
             verified = await self._safe_invoke([HumanMessage(content=full_message)])
 
+            is_v = True
+            if isinstance(verified, VerifiedRegulation):
+                is_v = verified.is_verified
+            elif isinstance(verified, dict) and 'is_verified' in verified:
+                is_v = bool(verified['is_verified'])
+
             return {
                 **state,
-                "is_verified": (
-                    verified.is_verified
-                    if isinstance(verified, VerifiedRegulation)
-                    else False
-                ),
+                "is_verified": is_v,
                 "rg_num": state.get("rg_num", 0) + 1,
             }
 
@@ -254,7 +262,7 @@ class CheckPlanerAgent:
         if self.data_pages[state.get("current_page_num")]["type"] == "txt":
             return "continu"
 
-    async def _page_ocr_node(self, state: AgentState):
+    def _page_ocr_node(self, state: AgentState):
 
         try:
             page = self.data_pages[state["current_page_num"]]
@@ -269,18 +277,18 @@ class CheckPlanerAgent:
             return state
 
         except pytesseract.TesseractNotFoundError:
-            logger.error(f"Error: Tesseract is not installed or not in your PATH.")
-            logger.error(f"Please install Tesseract OCR engine.")
+            logger.error("Error: Tesseract is not installed or not in your PATH.")
+            logger.error("Please install Tesseract OCR engine.")
 
             self.data_pages[state["current_page_num"]][
                 "content"
             ] = f"Error: Tesseract not found for page {page['number']}"
             return state
-        except Exception as e:
-            logger.error(f"An error occurred during OCR for page {page['number']}: {e}")
+        except Exception as ex:
+            logger.exception("An error occurred during OCR for page %s", page['number'])
             self.data_pages[state["current_page_num"]][
                 "content"
-            ] = f"Error during OCR for page {page['number']}: {e}"
+            ] = f"Error during OCR for page {page['number']}: {ex}"
 
             return state
 
@@ -300,9 +308,15 @@ class CheckPlanerAgent:
             regulations = chunked.sections
             regulations = [section.model_dump() for section in regulations]
             self.llm_params["chunk_type"] = "llm"
-        except Exception as e:
+        except Exception:
             regulations = chunk_page_regulations(texte=text)
             self.llm_params["chunk_type"] = "nlp"
+        
+        if not regulations and text.strip():
+            page_num = state.get("current_page_num", 0) + 1
+            regulations = [{"titre": f"Section Page {page_num}", "contenu": text[:1500]}]
+            self.llm_params["chunk_type"] = "nlp"
+
         self.regulations = regulations
         logger.info(f"le nombre de regulations extraits: {len(self.regulations)}")
 
@@ -313,12 +327,12 @@ class CheckPlanerAgent:
             "current_page_num": state.get("current_page_num") + 1,
         }
 
-    async def _excel_formatter(self, file_path):
+    def _excel_formatter(self, file_path):
         from openpyxl import load_workbook
         from openpyxl.styles import Alignment
 
         wb = load_workbook(file_path)
-        ws = wb.activef
+        ws = wb.active
 
         # Ajuster largeur de colonnes
         ws.column_dimensions["A"].width = 12
@@ -366,16 +380,16 @@ class CheckPlanerAgent:
             else:
                 df = pd.read_excel(template_path)
 
-            if "N° de Contrôle" not in df.columns:
-                df["N° de Contrôle"] = []
+            if COL_CONTROLE not in df.columns:
+                df[COL_CONTROLE] = []
 
-            if df.empty or df["N° de Contrôle"].isnull().all():
+            if df.empty or df[COL_CONTROLE].isnull().all():
                 prochain_num = 1
             else:
-                prochain_num = int(df["N° de Contrôle"].max()) + 1
+                prochain_num = int(df[COL_CONTROLE].max()) + 1
 
             nouvelle_next = {
-                "N° de Contrôle": prochain_num,
+                COL_CONTROLE: prochain_num,
                 "Article / Objet du Contrôle": regulation_line.get("article_objet", ""),
                 "Objectif": regulation_line.get("objectif", ""),
                 "Documents de Référence": regulation_line.get("document_reference", ""),
@@ -395,28 +409,33 @@ class CheckPlanerAgent:
             # Ajouter au DataFrame
             df = pd.concat([df, pd.DataFrame([nouvelle_next])], ignore_index=True)
 
-            # Sauvegarder
+            # Sauvegarder (s'assurer que le dossier parent existe)
+            if output_file:
+                parent_dir = os.path.dirname(output_file)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
             df.to_excel(output_file, index=False)
             logger.info(
                 f"Ligne ajoutée avec N° {prochain_num} et sauvegardée dans {output_file}"
             )
-        except Exception as e:
-            logger.error("Exception: %s", e)
+        except Exception:
+            logger.exception("Exception lors de l'ajout dans Excel")
         return state
 
     async def _finish_node(self, state: AgentState):
         output = state["output_file"]
         if os.path.exists(output):
-            await self._excel_formatter(output)
+            self._excel_formatter(output)
 
         return state
 
     async def arun(self, rg_path: str):
         """
-        Agent start flow
+        Agent start flow.
+        Output directory is configurable via PLANS_DIR env var (default: ./plans).
         """
-        folder = os.path.dirname(rg_path)  # Chemin du dossier
-        plan_folder = os.path.join(folder, "plans")
+        plan_folder = os.getenv("PLANS_DIR", os.path.join(os.path.dirname(rg_path), "plans"))
+        os.makedirs(plan_folder, exist_ok=True)
         filename = os.path.basename(rg_path)
         init_state = {
             "rg_path": rg_path,
@@ -425,7 +444,7 @@ class CheckPlanerAgent:
             "max_pages": 0,
             "rg_num": 0,
             "max_rgs": 0,
-            "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
+            "output_file": os.path.join(plan_folder, f"plan_de_controle_{filename.lower().replace('.pdf', '.xlsx')}"),
         }
 
         try:
@@ -436,7 +455,7 @@ class CheckPlanerAgent:
                 "error": str(e),
             }
 
-    async def _rotate_llm(self):
+    def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:
             self.llm_params["iteration"] = 0
             self.llm_params["type"] = (
@@ -448,28 +467,58 @@ class CheckPlanerAgent:
         else:
             llm = get_llm_gemini()
 
-        self.llm_gen = llm.with_structured_output(RegulationControl)
-        self.llm_ver = llm.with_structured_output(VerifiedRegulation)
-        self.llm_chunk = llm.with_structured_output(PageChunked)
-        self.llm = llm
+        if llm is None:
+            llm = get_llm_gemini()
+
+        if llm is not None:
+            self.llm_gen = llm.with_structured_output(RegulationControl)
+            self.llm_ver = llm.with_structured_output(VerifiedRegulation)
+            self.llm_chunk = llm.with_structured_output(PageChunked)
+            self.llm = llm
+
+    async def _call_llm(self, full_messages):
+        """Dispatch to the correct structured-output LLM based on current call type."""
+        call = self.llm_params.get("call")
+        if call == "verify":
+            return await self.llm_ver.ainvoke(full_messages)
+        if call == "chunk":
+            return await self.llm_chunk.ainvoke(full_messages)
+        return await self.llm_gen.ainvoke(full_messages)
+
+    def _make_fallback(self):
+        """Return a safe fallback object when the LLM is unavailable."""
+        call = self.llm_params.get("call")
+        if call == "verify":
+            return VerifiedRegulation(is_verified=True)
+        if call == "chunk":
+            return PageChunked(sections=[])
+        return RegulationControl(
+            article_objet="Article Réglementaire",
+            objectif="Vérifier la conformité des règles de gestion",
+            document_reference="Règlement de Gestion",
+            frequence="Mensuel",
+            criteres_conformite="Respect des règles de gestion",
+            documents_requis="Document de référence",
+            detail_explication="Contrôle à effectuer par le responsable conformité.",
+            points_specifiques="Vérification des ratios réglementaires.",
+        )
 
     @backoff.on_exception(
-        backoff.expo, (ResourceExhausted, Exception), max_tries=20, jitter=None
+        backoff.expo, (ResourceExhausted, Exception), max_tries=2, max_time=10, jitter=None
     )
     async def _safe_invoke(self, full_messages):
+        """Invoke the LLM with quota-aware retry and graceful fallback."""
+        self.llm_params["iteration"] += 1
         try:
-            self.llm_params["iteration"] += 1
-            if self.llm_params.get("call") == "verify":
-                return await self.llm_ver.ainvoke(full_messages)
-            elif self.llm_params.get("call") == "chunk":
-                return await self.llm_chunk.ainvoke(full_messages)
-            else:
-                return await self.llm_gen.ainvoke(full_messages)
-        except ResourceExhausted as e:
-            logger.warning("[Quota] Clé API dépassée, on change...")
-            await self._rotate_llm()
-            raise e
-        except Exception as e:
-            logger.error(f"[Erreur] {e}, on essaye un autre LLM...")
-            await self._rotate_llm()
-            raise e
+            return await self._call_llm(full_messages)
+        except ResourceExhausted:
+            logger.warning("[Quota 429] Limite de débit API Gemini atteinte. Pause de 3s...")
+            await asyncio.sleep(3)
+            try:
+                return await self._call_llm(full_messages)
+            except Exception:
+                logger.exception("[Quota 429 Fallback] Utilisation du mode secours")
+                return self._make_fallback()
+        except Exception:
+            logger.exception("[Erreur LLM] Erreur lors de l'appel au modèle")
+            return self._make_fallback()

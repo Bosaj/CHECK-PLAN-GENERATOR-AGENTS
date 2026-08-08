@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -194,7 +195,9 @@ export default function DashboardLayout({ children }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </motion.div>
         </main>
       </div>

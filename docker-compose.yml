@@ -1,19 +1,100 @@
+# ============================================================
+# Full-stack docker-compose for CHECK-PLAN-GENERATOR-AGENTS
+# Usage: docker-compose up -d
+# ============================================================
+
 services:
+
+  # ── MongoDB ────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: cdg-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Python AI Service (Check Planner) ─────────────────────
   check-planner:
-    env_file:
-      .env
+    env_file: .env
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: check-planner
+    container_name: cdg-check-planner
+    restart: unless-stopped
     ports:
       - "8057:8057"
     volumes:
-      - .:/check-planner
+      - upload_data:/app/reglements
+      - plans_data:/app/plans
+    environment:
+      UPLOAD_DIR: /app/reglements
+      PLANS_DIR: /app/plans
     entrypoint: ["uvicorn", "check_planner:app", "--host", "0.0.0.0", "--port", "8057"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8057/check-planner/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
-      - check-planner-network
+      - cdg-network
+
+  # ── Spring Boot Backend (API Gateway + Auth) ───────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cdg-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      SPRING_DATA_MONGODB_URI: ${MONGO_URI:-mongodb://mongo:27017/cdgcapital}
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CHECK_PLANNER_URL: http://check-planner:8057
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - cdg-network
+
+  # ── Next.js Frontend ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cdg-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - check-planner
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8000
+      NEXT_PUBLIC_CHECK_PLANNER_URL: http://check-planner:8057
+      NEXT_TELEMETRY_DISABLED: 1
+    networks:
+      - cdg-network
 
 networks:
-  check-planner-network:
+  cdg-network:
     driver: bridge
+
+volumes:
+  mongo_data:
+  upload_data:
+  plans_data:
