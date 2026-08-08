@@ -1,100 +1,55 @@
-# ============================================================
-# Full-stack docker-compose for CHECK-PLAN-GENERATOR-AGENTS
-# Usage: docker-compose up -d
-# ============================================================
+version: '3.8'
 
 services:
-
-  # ── MongoDB ────────────────────────────────────────────────
-  mongo:
-    image: mongo:7
-    container_name: cdg-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # ── Python AI Service (Check Planner) ─────────────────────
-  check-planner:
-    env_file: .env
+  ai-agent:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
-    container_name: cdg-check-planner
-    restart: unless-stopped
+      dockerfile: Dockerfile
+    container_name: cdg-check-planner-agent
     ports:
-      - "8057:8057"
-    volumes:
-      - upload_data:/app/reglements
-      - plans_data:/app/plans
+      - "8000:8000"
     environment:
-      UPLOAD_DIR: /app/reglements
-      PLANS_DIR: /app/plans
-    entrypoint: ["uvicorn", "check_planner:app", "--host", "0.0.0.0", "--port", "8057"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8057/check-planner/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - cdg-network
+      - PORT=8000
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    restart: unless-stopped
 
-  # ── Spring Boot Backend (API Gateway + Auth) ───────────────
-  backend:
+  java-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cdg-backend
-    restart: unless-stopped
+    container_name: cdg-capital-backend
     ports:
-      - "8000:8000"
-    depends_on:
-      mongo:
-        condition: service_healthy
+      - "8080:8080"
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGO_URI:-mongodb://mongo:27017/cdgcapital}
-      SECRET_KEY: ${SECRET_KEY}
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      CHECK_PLANNER_URL: http://check-planner:8057
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - cdg-network
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/cdg_capital
+      - JWT_SECRET=${JWT_SECRET:-defaultSecretKeyForJwtTokenGenerationMustBeLongEnough12345}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
 
-  # ── Next.js Frontend ───────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cdg-frontend
-    restart: unless-stopped
+    container_name: cdg-capital-frontend
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
-      - check-planner
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000
-      NEXT_PUBLIC_CHECK_PLANNER_URL: http://check-planner:8057
-      NEXT_TELEMETRY_DISABLED: 1
-    networks:
-      - cdg-network
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_AI_AGENT_URL=http://localhost:8000
+    depends_on:
+      - java-backend
+      - ai-agent
+    restart: unless-stopped
 
-networks:
-  cdg-network:
-    driver: bridge
+  mongodb:
+    image: mongo:7.0
+    container_name: cdg-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
 
 volumes:
-  mongo_data:
-  upload_data:
-  plans_data:
+  mongo-data:
