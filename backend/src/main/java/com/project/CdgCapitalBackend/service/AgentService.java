@@ -7,8 +7,7 @@ import com.project.CdgCapitalBackend.repository.ExecutionRepository;
 import com.project.CdgCapitalBackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,87 +15,101 @@ import java.util.Optional;
 public class AgentService {
 
     private final AgentRepository agentRepository;
-
     private final UserRepository userRepository;
     private final ExecutionRepository executionRepository;
 
-
-    public AgentService(AgentRepository agentRepository
-                        ,
-                        UserRepository userRepository, ExecutionRepository executionRepository ){
+    public AgentService(AgentRepository agentRepository,
+                        UserRepository userRepository,
+                        ExecutionRepository executionRepository) {
         this.agentRepository = agentRepository;
-
         this.userRepository = userRepository;
-        this.executionRepository=executionRepository;
+        this.executionRepository = executionRepository;
     }
 
-    // Agent operations
     public List<Agent> getAllAgents() {
-        return agentRepository.findAll();
+        List<Agent> agents = agentRepository.findAll();
+        return agents != null ? agents : Collections.emptyList();
     }
 
     public List<Agent> getAgentsByUserId(String userId) {
-        return agentRepository.findByUserId(userId);
+        if (userId == null || userId.isBlank()) {
+            return Collections.emptyList();
+        }
+        List<Agent> agents = agentRepository.findByUserId(userId);
+        return agents != null ? agents : Collections.emptyList();
     }
 
     public Optional<Agent> getAgentById(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
         return agentRepository.findById(id);
     }
 
     public Agent createAgent(AgentRequest agentRequest) {
-        // Récupérer l'ID de l'utilisateur depuis la requête
+        if (agentRequest == null) {
+            throw new IllegalArgumentException("La requête de création d'agent ne peut pas être nulle");
+        }
         String userId = agentRequest.getUserId();
 
-        // Créer un nouvel agent avec l'ID de l'utilisateur
         Agent agent = new Agent(agentRequest.getName(), agentRequest.getRole(), userId);
 
-        // Mettre à jour les statistiques de l'utilisateur si l'ID est fourni
-        if (userId != null && !userId.isEmpty()) {
+        if (userId != null && !userId.isBlank()) {
             userRepository.findById(userId).ifPresent(user -> {
-                // Incrémenter le nombre total d'agents de l'utilisateur
                 user.incrementTotalAgents();
                 userRepository.save(user);
             });
         }
 
-        // Sauvegarder et retourner l'agent créé
         return agentRepository.save(agent);
     }
 
     public Optional<Agent> updateAgent(String id, AgentRequest agentRequest) {
+        if (id == null || agentRequest == null) {
+            return Optional.empty();
+        }
         return agentRepository.findById(id)
                 .map(agent -> {
-                    agent.setName(agentRequest.getName());
-                    agent.setRole(agentRequest.getRole());
+                    if (agentRequest.getName() != null) {
+                        agent.setName(agentRequest.getName());
+                    }
+                    if (agentRequest.getRole() != null) {
+                        agent.setRole(agentRequest.getRole());
+                    }
                     return agentRepository.save(agent);
                 });
     }
 
     public boolean deleteAgent(String id) {
+        if (id == null || id.isBlank()) {
+            return false;
+        }
         return agentRepository.findById(id).map(agent -> {
-            // Mettre à jour les statistiques de l'utilisateur si l'agent a un propriétaire
             String userId = agent.getUserId();
-            if (userId != null && !userId.isEmpty()) {
+            if (userId != null && !userId.isBlank()) {
                 userRepository.findById(userId).ifPresent(user -> {
                     user.decrementTotalAgents();
                     userRepository.save(user);
                 });
             }
             executionRepository.deleteByAgentId(id);
-
             agentRepository.deleteById(id);
             return true;
         }).orElse(false);
     }
 
-    // Supprimer tous les agents d'un utilisateur
     public void deleteAgentsByUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
         List<Agent> userAgents = agentRepository.findByUserId(userId);
-
-
+        if (userAgents != null && !userAgents.isEmpty()) {
+            for (Agent agent : userAgents) {
+                if (agent != null && agent.getId() != null) {
+                    executionRepository.deleteByAgentId(agent.getId());
+                }
+            }
+            agentRepository.deleteAll(userAgents);
+        }
     }
-
-
-
-
 }

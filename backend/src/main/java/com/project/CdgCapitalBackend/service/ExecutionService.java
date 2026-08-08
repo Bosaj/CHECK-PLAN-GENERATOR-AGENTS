@@ -7,8 +7,10 @@ import com.project.CdgCapitalBackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
 @Service
 public class ExecutionService {
     private final ExecutionRepository executionRepository;
@@ -22,32 +24,38 @@ public class ExecutionService {
     }
 
     public List<Execution> getAllExecutions() {
-        return executionRepository.findAll();
+        List<Execution> list = executionRepository.findAll();
+        return list != null ? list : Collections.emptyList();
     }
 
     public List<Execution> getExecutionsByUserId(String userId) {
-        return executionRepository.findByUserIdOrderByStartTimeDesc(userId);
+        if (userId == null || userId.isBlank()) return Collections.emptyList();
+        List<Execution> list = executionRepository.findByUserIdOrderByStartTimeDesc(userId);
+        return list != null ? list : Collections.emptyList();
     }
 
     public List<Execution> getExecutionsByAgentId(String agentId) {
-        return executionRepository.findByAgentIdOrderByStartTimeDesc(agentId);
+        if (agentId == null || agentId.isBlank()) return Collections.emptyList();
+        List<Execution> list = executionRepository.findByAgentIdOrderByStartTimeDesc(agentId);
+        return list != null ? list : Collections.emptyList();
     }
 
     public Optional<Execution> getExecutionById(String id) {
+        if (id == null || id.isBlank()) return Optional.empty();
         return executionRepository.findById(id);
     }
 
     public Execution startExecution(String agentId, String userId) {
-        // Vérifier si l'agent existe
+        if (agentId == null || agentId.isBlank()) {
+            throw new IllegalArgumentException("agentId ne peut pas être nul");
+        }
         if (!agentService.getAgentById(agentId).isPresent()) {
             throw new IllegalArgumentException("Agent non trouvé avec l'ID: " + agentId);
         }
 
-        // Créer une nouvelle exécution avec ou sans userId
         Execution execution;
-        if (userId != null && !userId.isEmpty()) {
+        if (userId != null && !userId.isBlank()) {
             execution = new Execution(agentId, userId, "EN_COURS");
-            // Mettre à jour les statistiques de l'utilisateur seulement si userId est fourni
             updateUserStats(userId, null);
         } else {
             execution = new Execution(agentId, "EN_COURS");
@@ -57,6 +65,7 @@ public class ExecutionService {
     }
 
     public Optional<Execution> completeExecution(String executionId, String result, String notes) {
+        if (executionId == null || executionId.isBlank()) return Optional.empty();
         return executionRepository.findById(executionId)
                 .map(execution -> {
                     execution.setStatus("TERMINÉ");
@@ -64,28 +73,32 @@ public class ExecutionService {
                     execution.setResult(result);
                     execution.setNotes(notes);
 
-                    // Mettre à jour les statistiques de l'utilisateur
-                    updateUserStats(execution.getUserId(), "TERMINÉ");
+                    if (execution.getUserId() != null) {
+                        updateUserStats(execution.getUserId(), "TERMINÉ");
+                    }
 
                     return executionRepository.save(execution);
                 });
     }
 
     public Optional<Execution> failExecution(String executionId, String error) {
+        if (executionId == null || executionId.isBlank()) return Optional.empty();
         return executionRepository.findById(executionId)
                 .map(execution -> {
                     execution.setStatus("ÉCHOUÉ");
                     execution.setEndTime(LocalDateTime.now());
                     execution.setNotes(error);
 
-                    // Mettre à jour les statistiques de l'utilisateur
-                    updateUserStats(execution.getUserId(), "ÉCHOUÉ");
+                    if (execution.getUserId() != null) {
+                        updateUserStats(execution.getUserId(), "ÉCHOUÉ");
+                    }
 
                     return executionRepository.save(execution);
                 });
     }
 
     public boolean deleteExecution(String id) {
+        if (id == null || id.isBlank()) return false;
         if (executionRepository.existsById(id)) {
             executionRepository.deleteById(id);
             return true;
@@ -93,39 +106,33 @@ public class ExecutionService {
         return false;
     }
 
-    // Supprimer toutes les exécutions d'un utilisateur
     public void deleteExecutionsByUserId(String userId) {
+        if (userId == null || userId.isBlank()) return;
         List<Execution> userExecutions = executionRepository.findByUserIdOrderByStartTimeDesc(userId);
-        executionRepository.deleteAll(userExecutions);
+        if (userExecutions != null && !userExecutions.isEmpty()) {
+            executionRepository.deleteAll(userExecutions);
+        }
     }
 
-    // Méthode privée pour mettre à jour les statistiques de l'utilisateur
     private void updateUserStats(String userId, String executionStatus) {
-        // Ne rien faire si userId est null ou vide
-        if (userId == null || userId.isEmpty()) return;
+        if (userId == null || userId.isBlank()) return;
 
-        // Vérifier si l'utilisateur existe avant de mettre à jour ses statistiques
         Optional<User> userOptional = userRepository.findById(userId);
-        if (!userOptional.isPresent()) {
-            // Logger que l'utilisateur n'existe pas mais ne pas lever d'exception
-            System.out.println("Utilisateur non trouvé avec l'ID: " + userId);
+        if (userOptional.isEmpty()) {
             return;
         }
 
         User user = userOptional.get();
-        // Incrémenter le nombre total d'exécutions
         user.incrementTotalExecutions();
 
-        // Mettre à jour le statut spécifique si nécessaire
         if (executionStatus != null) {
-            if (executionStatus.equals("TERMINÉ")) {
+            if ("TERMINÉ".equals(executionStatus)) {
                 user.incrementSuccessfulExecutions();
-            } else if (executionStatus.equals("ÉCHOUÉ")) {
+            } else if ("ÉCHOUÉ".equals(executionStatus)) {
                 user.incrementFailedExecutions();
             }
         }
 
-        // Sauvegarder les modifications
         userRepository.save(user);
     }
 }

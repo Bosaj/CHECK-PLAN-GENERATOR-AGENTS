@@ -17,11 +17,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        if (ex.getBindingResult() != null && ex.getBindingResult().getAllErrors() != null) {
+            ex.getBindingResult().getAllErrors().forEach((error) -> {
+                if (error != null) {
+                    String fieldName = error instanceof FieldError ? ((FieldError) error).getField() : error.getObjectName();
+                    String errorMessage = error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valeur invalide";
+                    errors.put(fieldName, errorMessage);
+                }
+            });
+        }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
@@ -32,10 +36,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<Map<String, String>> handleNullPointerException(NullPointerException ex) {
+        Map<String, String> error = new HashMap<>();
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Une donnée requise est manquante ou nulle";
+        error.put("message", msg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("message", ex.getMessage());
+        error.put("message", ex.getMessage() != null ? ex.getMessage() : "Erreur lors du traitement");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 

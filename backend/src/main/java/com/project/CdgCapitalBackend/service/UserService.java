@@ -1,6 +1,5 @@
 package com.project.CdgCapitalBackend.service;
 
-
 import com.project.CdgCapitalBackend.model.User;
 import com.project.CdgCapitalBackend.model.dto.PasswordChangeRequest;
 import com.project.CdgCapitalBackend.model.dto.ProfileUpdateRequest;
@@ -28,7 +27,7 @@ public class UserService {
 
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        if (authentication == null || authentication.getName() == null) {
             log.error("Aucune authentification trouvée dans le contexte de sécurité");
             throw new RuntimeException("Utilisateur non authentifié");
         }
@@ -41,7 +40,6 @@ public class UserService {
         if (userOptional.isEmpty()) {
             log.error("Utilisateur avec l'email {} non trouvé dans la base de données", email);
 
-            // Si l'utilisateur n'existe pas, créons-le (uniquement pour la démo)
             User newUser = new User();
             newUser.setEmail(email);
             newUser.setName("Utilisateur");
@@ -57,6 +55,9 @@ public class UserService {
     }
 
     public User getUserById(String id) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("ID utilisateur ne peut pas être nul");
+        }
         log.info("Récupération de l'utilisateur avec l'ID: {}", id);
         return userRepository.findById(id)
                 .orElseThrow(() -> {
@@ -66,6 +67,9 @@ public class UserService {
     }
 
     public User getUserByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email ne peut pas être nul");
+        }
         log.info("Récupération de l'utilisateur avec l'email: {}", email);
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> {
@@ -75,6 +79,9 @@ public class UserService {
     }
 
     public User updateUser(String id, User userUpdates) {
+        if (userUpdates == null) {
+            throw new IllegalArgumentException("Les données de mise à jour ne peuvent pas être nulles");
+        }
         User user = getUserById(id);
 
         if (userUpdates.getName() != null) {
@@ -91,6 +98,9 @@ public class UserService {
     }
 
     public User updateProfile(ProfileUpdateRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("La requête de mise à jour ne peut pas être nulle");
+        }
         User currentUser = getCurrentUser();
         log.info("Mise à jour du profil pour l'utilisateur: {}", currentUser.getEmail());
 
@@ -101,7 +111,6 @@ public class UserService {
 
         if (request.getEmail() != null && !request.getEmail().isEmpty()
                 && !request.getEmail().equals(currentUser.getEmail())) {
-            // Vérifier si l'email est déjà utilisé
             if (userRepository.existsByEmail(request.getEmail())) {
                 log.error("Email déjà utilisé: {}", request.getEmail());
                 throw new RuntimeException("Cet email est déjà utilisé");
@@ -120,22 +129,22 @@ public class UserService {
     }
 
     public void changePassword(PasswordChangeRequest request) {
+        if (request == null || request.getCurrentPassword() == null || request.getNewPassword() == null || request.getConfirmPassword() == null) {
+            throw new IllegalArgumentException("Tous les champs du mot de passe sont requis");
+        }
         User currentUser = getCurrentUser();
         log.info("Changement de mot de passe pour l'utilisateur: {}", currentUser.getEmail());
 
-        // Vérifier que le mot de passe actuel est correct
         if (!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())) {
             log.error("Mot de passe actuel incorrect pour l'utilisateur: {}", currentUser.getEmail());
             throw new BadCredentialsException("Le mot de passe actuel est incorrect");
         }
 
-        // Vérifier que le nouveau mot de passe et la confirmation correspondent
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             log.error("Le nouveau mot de passe et la confirmation ne correspondent pas");
             throw new RuntimeException("Le nouveau mot de passe et la confirmation ne correspondent pas");
         }
 
-        // Mettre à jour le mot de passe
         currentUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
         currentUser.setUpdatedAt(LocalDateTime.now());
         userRepository.save(currentUser);
@@ -147,39 +156,35 @@ public class UserService {
         String userId = currentUser.getId();
         log.info("Suppression du compte pour l'utilisateur: {}", currentUser.getEmail());
 
-        // Supprimer tous les agents de l'utilisateur
-        try {
-            log.info("Suppression des agents pour l'utilisateur: {}", userId);
-            agentService.deleteAgentsByUserId(userId);
-        } catch (Exception e) {
-            log.error("Erreur lors de la suppression des agents: {}", e.getMessage());
+        if (userId != null) {
+            try {
+                log.info("Suppression des agents pour l'utilisateur: {}", userId);
+                agentService.deleteAgentsByUserId(userId);
+            } catch (Exception e) {
+                log.error("Erreur lors de la suppression des agents: {}", e.getMessage());
+            }
+
+            try {
+                log.info("Suppression des exécutions pour l'utilisateur: {}", userId);
+                executionService.deleteExecutionsByUserId(userId);
+            } catch (Exception e) {
+                log.error("Erreur lors de la suppression des exécutions: {}", e.getMessage());
+            }
         }
 
-        // Supprimer toutes les exécutions de l'utilisateur
-        try {
-            log.info("Suppression des exécutions pour l'utilisateur: {}", userId);
-            executionService.deleteExecutionsByUserId(userId);
-        } catch (Exception e) {
-            log.error("Erreur lors de la suppression des exécutions: {}", e.getMessage());
-        }
-
-        // Supprimer l'utilisateur
         userRepository.delete(currentUser);
         log.info("Compte supprimé avec succès pour l'utilisateur: {}", currentUser.getEmail());
     }
 
-    // Méthode pour calculer les statistiques d'un utilisateur
     public User calculateUserStats(String userId) {
         User user = getUserById(userId);
 
-        // Calculer le nombre total d'agents
-        int totalAgents = agentService.getAgentsByUserId(userId).size();
-        user.setTotalAgents(totalAgents);
-
-        // Pour l'instant, nous ne pouvons pas calculer les exécutions car elles sont stockées dans localStorage
-        // Mais nous pouvons au moins mettre à jour le nombre d'agents
-
-        // Sauvegarder les statistiques mises à jour
-        return userRepository.save(user);
+        if (user != null) {
+            var agents = agentService.getAgentsByUserId(userId);
+            int totalAgents = agents != null ? agents.size() : 0;
+            user.setTotalAgents(totalAgents);
+            return userRepository.save(user);
+        }
+        return null;
     }
 }
