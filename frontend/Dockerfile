@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine3.22 AS deps
 WORKDIR /app
+# Patch Alpine OS packages to eliminate known CVEs
+RUN apk upgrade --no-cache
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 

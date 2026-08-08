@@ -3,8 +3,8 @@ FROM python:3.13-alpine3.22
 
 WORKDIR /app
 
-# Install system dependencies for OCR and PyMuPDF
-RUN apk add --no-cache \
+# Patch all OS packages first to eliminate known CVEs, then install build deps
+RUN apk upgrade --no-cache && apk add --no-cache \
     tesseract-ocr \
     tesseract-ocr-data-fra \
     build-base \
