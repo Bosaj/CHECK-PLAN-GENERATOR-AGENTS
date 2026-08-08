@@ -1,0 +1,18 @@
+# Global Codeowners
+* @Bosaj @startlingadama @IdrHamza @Chaymaadihaji
+
+# AI Engine & LangGraph Agents
+/check_planner/ @Bosaj @startlingadama
+/check_planner/agents/ @Bosaj @startlingadama
+/check_planner/regulation_chunker/ @startlingadama @Bosaj
+
+# Java Spring Boot Backend Gateway
+/backend/ @IdrHamza
+
+# Next.js Frontend Dashboard
+/frontend/ @IdrHamza
+
+# Data, Templates & SDKs
+/plans/ @Chaymaadihaji
+/clients/ @Chaymaadihaji
+/tests/ @Chaymaadihaji @Bosaj
