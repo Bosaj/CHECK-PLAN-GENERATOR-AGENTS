@@ -7,12 +7,17 @@ import com.project.CdgCapitalBackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ExecutionService {
+    private static final String STATUS_TERMINE = "TERMINÉ";
+    private static final String STATUS_ECHQUE = "ÉCHOUÉ";
+    private static final String STATUS_EN_COURS = "EN_COURS";
+
     private final ExecutionRepository executionRepository;
     private final AgentService agentService;
     private final UserRepository userRepository;
@@ -24,20 +29,17 @@ public class ExecutionService {
     }
 
     public List<Execution> getAllExecutions() {
-        List<Execution> list = executionRepository.findAll();
-        return list != null ? list : Collections.emptyList();
+        return executionRepository.findAll();
     }
 
     public List<Execution> getExecutionsByUserId(String userId) {
         if (userId == null || userId.isBlank()) return Collections.emptyList();
-        List<Execution> list = executionRepository.findByUserIdOrderByStartTimeDesc(userId);
-        return list != null ? list : Collections.emptyList();
+        return executionRepository.findByUserIdOrderByStartTimeDesc(userId);
     }
 
     public List<Execution> getExecutionsByAgentId(String agentId) {
         if (agentId == null || agentId.isBlank()) return Collections.emptyList();
-        List<Execution> list = executionRepository.findByAgentIdOrderByStartTimeDesc(agentId);
-        return list != null ? list : Collections.emptyList();
+        return executionRepository.findByAgentIdOrderByStartTimeDesc(agentId);
     }
 
     public Optional<Execution> getExecutionById(String id) {
@@ -49,16 +51,16 @@ public class ExecutionService {
         if (agentId == null || agentId.isBlank()) {
             throw new IllegalArgumentException("agentId ne peut pas être nul");
         }
-        if (!agentService.getAgentById(agentId).isPresent()) {
+        if (agentService.getAgentById(agentId).isEmpty()) {
             throw new IllegalArgumentException("Agent non trouvé avec l'ID: " + agentId);
         }
 
         Execution execution;
         if (userId != null && !userId.isBlank()) {
-            execution = new Execution(agentId, userId, "EN_COURS");
+            execution = new Execution(agentId, userId, STATUS_EN_COURS);
             updateUserStats(userId, null);
         } else {
-            execution = new Execution(agentId, "EN_COURS");
+            execution = new Execution(agentId, STATUS_EN_COURS);
         }
 
         return executionRepository.save(execution);
@@ -68,13 +70,13 @@ public class ExecutionService {
         if (executionId == null || executionId.isBlank()) return Optional.empty();
         return executionRepository.findById(executionId)
                 .map(execution -> {
-                    execution.setStatus("TERMINÉ");
-                    execution.setEndTime(LocalDateTime.now());
+                    execution.setStatus(STATUS_TERMINE);
+                    execution.setEndTime(LocalDateTime.now(ZoneId.systemDefault()));
                     execution.setResult(result);
                     execution.setNotes(notes);
 
                     if (execution.getUserId() != null) {
-                        updateUserStats(execution.getUserId(), "TERMINÉ");
+                        updateUserStats(execution.getUserId(), STATUS_TERMINE);
                     }
 
                     return executionRepository.save(execution);
@@ -85,12 +87,12 @@ public class ExecutionService {
         if (executionId == null || executionId.isBlank()) return Optional.empty();
         return executionRepository.findById(executionId)
                 .map(execution -> {
-                    execution.setStatus("ÉCHOUÉ");
-                    execution.setEndTime(LocalDateTime.now());
+                    execution.setStatus(STATUS_ECHQUE);
+                    execution.setEndTime(LocalDateTime.now(ZoneId.systemDefault()));
                     execution.setNotes(error);
 
                     if (execution.getUserId() != null) {
-                        updateUserStats(execution.getUserId(), "ÉCHOUÉ");
+                        updateUserStats(execution.getUserId(), STATUS_ECHQUE);
                     }
 
                     return executionRepository.save(execution);
@@ -109,7 +111,7 @@ public class ExecutionService {
     public void deleteExecutionsByUserId(String userId) {
         if (userId == null || userId.isBlank()) return;
         List<Execution> userExecutions = executionRepository.findByUserIdOrderByStartTimeDesc(userId);
-        if (userExecutions != null && !userExecutions.isEmpty()) {
+        if (!userExecutions.isEmpty()) {
             executionRepository.deleteAll(userExecutions);
         }
     }
@@ -126,9 +128,9 @@ public class ExecutionService {
         user.incrementTotalExecutions();
 
         if (executionStatus != null) {
-            if ("TERMINÉ".equals(executionStatus)) {
+            if (STATUS_TERMINE.equals(executionStatus)) {
                 user.incrementSuccessfulExecutions();
-            } else if ("ÉCHOUÉ".equals(executionStatus)) {
+            } else if (STATUS_ECHQUE.equals(executionStatus)) {
                 user.incrementFailedExecutions();
             }
         }

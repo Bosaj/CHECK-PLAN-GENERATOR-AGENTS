@@ -92,6 +92,14 @@ public class Execution {
         this.result = result;
     }
 
+    public String getReglementId() {
+        return reglementId;
+    }
+
+    public void setReglementId(String reglementId) {
+        this.reglementId = reglementId;
+    }
+
     public String getNotes() {
         return notes;
     }

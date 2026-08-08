@@ -27,16 +27,14 @@ public class AgentService {
     }
 
     public List<Agent> getAllAgents() {
-        List<Agent> agents = agentRepository.findAll();
-        return agents != null ? agents : Collections.emptyList();
+        return agentRepository.findAll();
     }
 
     public List<Agent> getAgentsByUserId(String userId) {
         if (userId == null || userId.isBlank()) {
             return Collections.emptyList();
         }
-        List<Agent> agents = agentRepository.findByUserId(userId);
-        return agents != null ? agents : Collections.emptyList();
+        return agentRepository.findByUserId(userId);
     }
 
     public Optional<Agent> getAgentById(String id) {
