@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.time.Instant;
-import java.util.Date; // NOSONAR
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -54,8 +53,8 @@ public class JwtUtils {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(expiry))
+                .setIssuedAt(java.util.Date.from(now))
+                .setExpiration(java.util.Date.from(expiry))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -69,12 +68,13 @@ public class JwtUtils {
     }
 
     private boolean isTokenExpired(String token) {
-        Date expiration = extractExpiration(token);
-        return expiration != null && expiration.toInstant().isBefore(Instant.now());
+        Instant expiration = extractExpiration(token);
+        return expiration != null && expiration.isBefore(Instant.now());
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    private Instant extractExpiration(String token) {
+        java.util.Date expirationDate = extractClaim(token, Claims::getExpiration);
+        return expirationDate != null ? expirationDate.toInstant() : null;
     }
 
     private Claims extractAllClaims(String token) {
