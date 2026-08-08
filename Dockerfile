@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-alpine3.20
+FROM python:3.13-alpine3.22
 
 WORKDIR /app
 
@@ -22,5 +22,9 @@ EXPOSE 8000
 
 ENV PORT=8000
 ENV HOST="0.0.0.0"
+
+# Run as non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 CMD ["python", "-m", "check_planner.route"]
