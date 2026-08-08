@@ -8,12 +8,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date; // NOSONAR
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-@SuppressWarnings({"java:S120", "java:S2143", "java:S2737"})
+@SuppressWarnings({"java:S120", "java:S2143"})
 @Component
 public class JwtUtils {
 
@@ -47,11 +48,14 @@ public class JwtUtils {
             throw new IllegalArgumentException("UserDetails et le nom d'utilisateur ne peuvent pas être nuls");
         }
         Map<String, Object> claims = extraClaims != null ? extraClaims : new HashMap<>();
+        Instant now = Instant.now();
+        Instant expiry = now.plusMillis(jwtExpirationMs);
+
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiry))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -66,7 +70,7 @@ public class JwtUtils {
 
     private boolean isTokenExpired(String token) {
         Date expiration = extractExpiration(token);
-        return expiration != null && expiration.before(new Date());
+        return expiration != null && expiration.toInstant().isBefore(Instant.now());
     }
 
     private Date extractExpiration(String token) {
