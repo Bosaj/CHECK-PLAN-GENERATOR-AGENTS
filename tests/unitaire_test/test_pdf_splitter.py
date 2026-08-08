@@ -3,7 +3,7 @@ Unit tests for pdf_splitter and OCR integration functions.
 """
 from PIL import Image
 from check_planner.agents.plan_generator_agent.agent import perform_ocr
-from check_planner.pdf_splitter.splitter import is_probable_tableau
+from check_planner.pdf_splitter.splitter import PDFSplitter
 
 
 def test_perform_ocr_fallback():
@@ -13,10 +13,16 @@ def test_perform_ocr_fallback():
     assert isinstance(result, str)
 
 
-def test_is_probable_tableau_detector():
-    """Test is_probable_tableau helper heuristic."""
-    line1 = "Tableau des Ratios d'Investissement et Limites d'Exposition"
-    assert is_probable_tableau(line1) is True
+def test_pdf_splitter_heuristics():
+    """Test PDFSplitter table detection heuristic."""
+    splitter = PDFSplitter()
+    short_line = [{"x0": 10, "x1": 20, "texte": "word"}]
+    assert splitter.est_probable_tableau(short_line) is False
 
-    line2 = "Texte explicatif général sur la gestion du fonds."
-    assert is_probable_tableau(line2) is False
+    table_line = [
+        {"x0": 10, "x1": 30, "texte": "Col1"},
+        {"x0": 80, "x1": 100, "texte": "Col2"},
+        {"x0": 150, "x1": 170, "texte": "Col3"},
+    ]
+    assert splitter.est_probable_tableau(table_line) is True
+
