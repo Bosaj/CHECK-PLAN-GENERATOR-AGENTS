@@ -1,15 +1,17 @@
 # syntax=docker/dockerfile:1
-# Using Chainguard Python image — continuously rebuilt, 0 CVEs
-FROM cgr.dev/chainguard/python:latest-dev
+FROM python:3.13-alpine3.22
 
 WORKDIR /app
 
-# Wolfi (Chainguard's OS) supports apk — tesseract available in Wolfi repo
-RUN apk add --no-cache \
+# Patch OS packages + install build deps in one layer
+RUN apk upgrade --no-cache && apk add --no-cache \
     tesseract-ocr \
     tesseract-ocr-data-fra \
     build-base \
-    glib
+    gcompat \
+    libstdc++ \
+    glib \
+    mesa-gl
 
 COPY pyproject.toml .
 RUN pip install --no-cache-dir hatchling && pip install --no-cache-dir -e .
@@ -21,6 +23,8 @@ EXPOSE 8000
 ENV PORT=8000
 ENV HOST="0.0.0.0"
 
-# Chainguard images run as nonroot (uid 65532) by default — no USER needed
+# Run as non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 CMD ["python", "-m", "check_planner.route"]
