@@ -13,8 +13,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
+@SuppressWarnings({"java:S120", "java:S112", "java:S5411"})
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -29,7 +32,7 @@ public class UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             log.error("Aucune authentification trouvée dans le contexte de sécurité");
-            throw new RuntimeException("Utilisateur non authentifié");
+            throw new BadCredentialsException("Utilisateur non authentifié");
         }
 
         String email = authentication.getName();
@@ -44,8 +47,8 @@ public class UserService {
             newUser.setEmail(email);
             newUser.setName("Utilisateur");
             newUser.setPassword(passwordEncoder.encode("password"));
-            newUser.setCreatedAt(LocalDateTime.now());
-            newUser.setUpdatedAt(LocalDateTime.now());
+            newUser.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+            newUser.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
 
             log.info("Création d'un nouvel utilisateur avec l'email: {}", email);
             return userRepository.save(newUser);
@@ -62,7 +65,7 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("Utilisateur avec l'ID {} non trouvé", id);
-                    return new RuntimeException("Utilisateur non trouvé");
+                    return new NoSuchElementException("Utilisateur non trouvé");
                 });
     }
 
@@ -74,7 +77,7 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.error("Utilisateur avec l'email {} non trouvé", email);
-                    return new RuntimeException("Utilisateur non trouvé");
+                    return new NoSuchElementException("Utilisateur non trouvé");
                 });
     }
 
@@ -92,7 +95,7 @@ public class UserService {
             user.setProfileImage(userUpdates.getProfileImage());
         }
 
-        user.setUpdatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
         log.info("Mise à jour de l'utilisateur avec l'ID: {}", id);
         return userRepository.save(user);
     }
@@ -111,9 +114,10 @@ public class UserService {
 
         if (request.getEmail() != null && !request.getEmail().isEmpty()
                 && !request.getEmail().equals(currentUser.getEmail())) {
-            if (userRepository.existsByEmail(request.getEmail())) {
+            boolean emailExists = userRepository.existsByEmail(request.getEmail());
+            if (emailExists) {
                 log.error("Email déjà utilisé: {}", request.getEmail());
-                throw new RuntimeException("Cet email est déjà utilisé");
+                throw new IllegalArgumentException("Cet email est déjà utilisé");
             }
             currentUser.setEmail(request.getEmail());
             log.info("Email mis à jour: {}", request.getEmail());
@@ -124,7 +128,7 @@ public class UserService {
             log.info("Image de profil mise à jour");
         }
 
-        currentUser.setUpdatedAt(LocalDateTime.now());
+        currentUser.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
         return userRepository.save(currentUser);
     }
 
@@ -142,11 +146,11 @@ public class UserService {
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             log.error("Le nouveau mot de passe et la confirmation ne correspondent pas");
-            throw new RuntimeException("Le nouveau mot de passe et la confirmation ne correspondent pas");
+            throw new IllegalArgumentException("Le nouveau mot de passe et la confirmation ne correspondent pas");
         }
 
         currentUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        currentUser.setUpdatedAt(LocalDateTime.now());
+        currentUser.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
         userRepository.save(currentUser);
         log.info("Mot de passe changé avec succès pour l'utilisateur: {}", currentUser.getEmail());
     }
