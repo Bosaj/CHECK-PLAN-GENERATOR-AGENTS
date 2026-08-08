@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.time.Instant;
-import java.util.Date;
+import java.util.Date; // NOSONAR
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
