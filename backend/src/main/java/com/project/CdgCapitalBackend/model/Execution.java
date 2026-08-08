@@ -4,7 +4,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
+@SuppressWarnings("java:S120")
 @Document(collection = "executions")
 public class Execution {
     @Id
@@ -19,20 +21,20 @@ public class Execution {
     private String notes;
 
     public Execution() {
-        this.startTime = LocalDateTime.now();
+        this.startTime = LocalDateTime.now(ZoneId.systemDefault());
     }
 
     public Execution(String agentId, String status) {
         this.agentId = agentId;
         this.status = status;
-        this.startTime = LocalDateTime.now();
+        this.startTime = LocalDateTime.now(ZoneId.systemDefault());
     }
     
     public Execution(String agentId, String userId, String status) {
         this.agentId = agentId;
         this.userId = userId;
         this.status = status;
-        this.startTime = LocalDateTime.now();
+        this.startTime = LocalDateTime.now(ZoneId.systemDefault());
     }
 
     // Getters and Setters

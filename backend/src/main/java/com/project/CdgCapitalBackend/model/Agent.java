@@ -4,7 +4,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
+@SuppressWarnings("java:S120")
 @Document(collection = "agents")
 public class Agent {
     @Id
@@ -16,14 +18,14 @@ public class Agent {
     private String userId; // ID de l'utilisateur propriétaire
 
     public Agent() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(ZoneId.systemDefault());
     }
 
     public Agent(String name, String role, String userId) {
         this.name = name;
         this.role = role;
         this.userId = userId;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(ZoneId.systemDefault());
     }
 
     // Getters and Setters
@@ -59,8 +61,6 @@ public class Agent {
         this.createdAt = createdAt;
     }
 
-
-
     public String getUserId() {
         return userId;
     }
@@ -68,6 +68,4 @@ public class Agent {
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
-
 }

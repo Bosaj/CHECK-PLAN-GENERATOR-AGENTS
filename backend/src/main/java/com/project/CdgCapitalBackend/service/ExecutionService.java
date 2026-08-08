@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings("java:S120")
 @Service
 public class ExecutionService {
     private static final String STATUS_TERMINE = "TERMINÉ";

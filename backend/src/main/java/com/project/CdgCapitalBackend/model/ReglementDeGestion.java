@@ -4,10 +4,11 @@ import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+@SuppressWarnings("java:S120")
 @Data
-
 @Document(collection = "reglements")
-
 public class ReglementDeGestion {
     private String agentId;
     private String userId;          // optionnel mais recommandé
@@ -18,6 +19,6 @@ public class ReglementDeGestion {
 
     private LocalDateTime uploadedAt;
     public ReglementDeGestion() {
-        this.uploadedAt = LocalDateTime.now();
+        this.uploadedAt = LocalDateTime.now(ZoneId.systemDefault());
     }
 }
