@@ -5,7 +5,6 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Button } from "@/components/ui/button"
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +22,6 @@ import {
   History, 
   LogOut, 
   Bot, 
-  User, 
   Settings,
   ChevronRight
 } from "lucide-react"

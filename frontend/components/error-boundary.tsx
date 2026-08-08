@@ -39,6 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error?.message ?? "Erreur inconnue"}
             </p>
             <button
+              type="button"
               onClick={() => {
                 this.setState({ hasError: false, error: undefined });
                 window.location.reload();

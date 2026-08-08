@@ -33,7 +33,7 @@ jobs:
           pip install pytest pytest-asyncio pytest-cov
           pytest tests/ -v --tb=short --cov=check_planner --cov-report=term-missing
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_API_KEY: "${{ secrets.GOOGLE_API_KEY }}"
 
   # ── JavaScript / Next.js ────────────────────────────────────
   frontend-lint:

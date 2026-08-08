@@ -418,11 +418,12 @@ class CheckPlanerAgent:
             logger.info(
                 f"Ligne ajoutée avec N° {prochain_num} et sauvegardée dans {output_file}"
             )
+            return {**state, "rg_num": state.get("rg_num", 0) + 1}
         except Exception:
             logger.exception("Exception lors de l'ajout dans Excel")
         return state
 
-    async def _finish_node(self, state: AgentState):
+    def _finish_node(self, state: AgentState):
         output = state["output_file"]
         if os.path.exists(output):
             self._excel_formatter(output)
