@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -77,7 +77,7 @@ class VerifiedAgentState(TypedDict):
 
 
 class ExtractRGName(BaseModel):
-    rg_name: Optional[str] = Field(
+    rg_name: str | None = Field(
         ...,
         description=(
             "The official legal name of the management regulation as displayed in the page title. "
@@ -91,7 +91,7 @@ class Section(BaseModel):
 
 
 class PageChunked(BaseModel):
-    sections: List[Section] = Field(
+    sections: list[Section] = Field(
         ..., description="Liste des sections extraites de la page"
     )
 

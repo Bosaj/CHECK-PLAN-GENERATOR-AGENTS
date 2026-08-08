@@ -3,20 +3,20 @@ import os
 
 import backoff
 import pandas as pd
-from dotenv import load_dotenv
 from google.api_core.exceptions import ResourceExhausted
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph import END, StateGraph
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from check_planner.agents.models import (LegislativeReference,
-                                         RegulationControl, VerifiedAgentState)
+from check_planner.agents.models import (
+    LegislativeReference,
+    RegulationControl,
+    VerifiedAgentState,
+)
 from check_planner.agents.prompts import controle_systeme_prompt
-from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
-                               llm_groq)
+from check_planner.llm import get_llm_gemini, get_llm_groq, llm_groq
 from check_planner.retriever import retrieve_regulation
 
 

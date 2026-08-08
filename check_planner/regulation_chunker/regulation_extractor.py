@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 import re
-from typing import Dict, List, Optional, Tuple
 
 # spaCy optionnel
 try:
@@ -15,7 +13,7 @@ class RegulationExtractor:
 
     def __init__(self):
 
-        self.patterns: Dict[str, re.Pattern] = {
+        self.patterns: dict[str, re.Pattern] = {
             # 1. Titre, 1) Titre, 1- Titre, 15. Titre, 3 Titre
             "numerique": re.compile(
                 r"^\s*(?P<num>\d+(?:\.\d+)*[\.\)\-]?|\d+)\s+(?P<title>.+?)\s*$"
@@ -110,7 +108,7 @@ class RegulationExtractor:
         return re.sub(r"\s+", " ", l.strip())
 
     def est_ligne_tableau(
-        self, ligne: str, contexte: Optional[List[str]] = None
+        self, ligne: str, contexte: list[str] | None = None
     ) -> bool:
         """Heuristiques pour ignorer le contenu de type tableau / décoratif."""
         l = ligne.strip()
@@ -144,8 +142,8 @@ class RegulationExtractor:
         return False
 
     def detecter_titre_avec_contexte(
-        self, ligne: str, index: int, lignes: List[str]
-    ) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
+        self, ligne: str, index: int, lignes: list[str]
+    ) -> tuple[bool, str | None, str | None, str | None]:
         """
         Retourne: (est_titre, type_pattern, numero, titre)
         """
@@ -200,12 +198,12 @@ class RegulationExtractor:
 
         return False, None, None, None
 
-    def detecter_titre(self, ligne: str) -> Tuple[bool, Optional[str], Optional[str]]:
+    def detecter_titre(self, ligne: str) -> tuple[bool, str | None, str | None]:
         ok, _, num, title = self.detecter_titre_avec_contexte(ligne, 0, [ligne])
         return ok, num, title
 
     def _niveau_depuis_numero(
-        self, type_nom: Optional[str], numero: Optional[str]
+        self, type_nom: str | None, numero: str | None
     ) -> int:
         """
         Estime un niveau hiérarchique à partir du type de pattern et du numéro détecté.
@@ -222,7 +220,7 @@ class RegulationExtractor:
             return 2 if "." in numero else 1
         return 1
 
-    def analyser_structure(self, texte: str) -> List[Dict]:
+    def analyser_structure(self, texte: str) -> list[dict]:
         """
         Retourne une liste de sections à plat (ordre d'apparition) :
         [{numero, titre, contenu, nb_paragraphes, nb_mots, type, niveau}]
@@ -231,12 +229,12 @@ class RegulationExtractor:
             return []
 
         lignes = [l for l in (texte.splitlines())]
-        sections: List[Dict] = []
+        sections: list[dict] = []
         cur_titre = None
         cur_num = None
         cur_type = None
         cur_niveau = 1
-        buf: List[str] = []
+        buf: list[str] = []
 
         for i, l in enumerate(lignes):
             ok, type_nom, numero, titre = self.detecter_titre_avec_contexte(
@@ -298,8 +296,8 @@ class RegulationExtractor:
         return "\n".join(lines)
 
     @staticmethod
-    def _dedupe_sections(sections: List[Dict]) -> List[Dict]:
-        out: List[Dict] = []
+    def _dedupe_sections(sections: list[dict]) -> list[dict]:
+        out: list[dict] = []
         prev_key = None
         for s in sections:
             key = (s.get("numero"), s.get("titre"))
@@ -308,7 +306,7 @@ class RegulationExtractor:
                 prev_key = key
         return out
 
-    def construire_hierarchie(self, sections: List[Dict]) -> Dict:
+    def construire_hierarchie(self, sections: list[dict]) -> dict:
         """
         Construit un arbre hiérarchique à partir des sections à plat.
         Format :
@@ -345,7 +343,7 @@ class RegulationExtractor:
 
         return root
 
-    def analyser_avec_spacy(self, sections: List[Dict]) -> List[Dict]:
+    def analyser_avec_spacy(self, sections: list[dict]) -> list[dict]:
         if not nlp:
             return sections
 

@@ -1,7 +1,5 @@
 import asyncio
 
-import pytest
-
 from check_planner.retriever import retrieve_regulation
 
 

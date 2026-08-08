@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import sys
-from typing import List
 
 import aiofiles
 
@@ -11,9 +10,11 @@ logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from check_planner.agents import (create_check_plan_generator_agent,
-                                  create_verifier_agent)
-from check_planner.llm import llm_gemini, llm_groq
+from check_planner.agents import (
+    create_check_plan_generator_agent,
+    create_verifier_agent,
+)
+from check_planner.llm import llm_gemini
 from check_planner.models import AgentResult, HelloOutput
 
 # ── Upload directory (Docker-compatible) ────────────────────────────────────
@@ -41,9 +42,7 @@ def _sanitize_filename(filename: str) -> str:
 @router.get("/")
 async def hello() -> HelloOutput:
     return HelloOutput(
-        **{
-            "Message": "Hello - You are on Check Planner, LLM Agent for finance regulations check plan"
-        }
+        Message="Hello - You are on Check Planner, LLM Agent for finance regulations check plan"
     )
 
 
@@ -53,7 +52,7 @@ async def health_check():
 
 
 @router.post("/generate", response_model=AgentResult)
-async def check_plan_generator(reglements: List[UploadFile] = File(...)) -> AgentResult:
+async def check_plan_generator(reglements: list[UploadFile] = File(...)) -> AgentResult:
 
     if not reglements:
         raise HTTPException(status_code=400, detail="Aucun règlement remis")

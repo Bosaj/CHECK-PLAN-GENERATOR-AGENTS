@@ -14,13 +14,19 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
 from PIL import Image
 
-from check_planner.agents.models import (AgentState, ExtractRGName,
-                                         PageChunked, RegulationControl,
-                                         VerifiedRegulation)
-from check_planner.agents.prompts import (extract_title_prompt, prompt_system,
-                                          prompt_verified_rg)
-from check_planner.llm import (get_llm_gemini, get_llm_groq, llm_gemini,
-                               llm_groq)
+from check_planner.agents.models import (
+    AgentState,
+    ExtractRGName,
+    PageChunked,
+    RegulationControl,
+    VerifiedRegulation,
+)
+from check_planner.agents.prompts import (
+    extract_title_prompt,
+    prompt_system,
+    prompt_verified_rg,
+)
+from check_planner.llm import get_llm_gemini, get_llm_groq, llm_groq
 from check_planner.pdf_splitter import split_pdf
 from check_planner.regulation_chunker import chunk_page_regulations
 
@@ -30,8 +36,8 @@ COL_CONTROLE = "N\u00b0 de Contr\u00f4le"
 def perform_ocr(img: Image.Image) -> str:
     """Perform OCR using RapidOCR (PaddleOCR ONNX) with Tesseract fallback."""
     try:
-        from rapidocr_onnxruntime import RapidOCR
         import numpy as np
+        from rapidocr_onnxruntime import RapidOCR
         engine = RapidOCR()
         img_np = np.array(img)
         result, _ = engine(img_np)
@@ -229,7 +235,6 @@ class CheckPlanerAgent:
             self.llm_params["call"] = "generate"
             regulation = await self._safe_invoke([HumanMessage(content=full_message)])
 
-            #
             regulation = regulation.model_dump()
             regulation = {
                 key: (
