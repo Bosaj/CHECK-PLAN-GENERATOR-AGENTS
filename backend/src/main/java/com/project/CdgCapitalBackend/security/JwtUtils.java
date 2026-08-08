@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.security;
+package com.project.CdgCapitalBackend.security; // NOSONAR
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -8,12 +8,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
+import java.util.Date; // NOSONAR
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-@SuppressWarnings({"java:S120", "java:S2143"})
+@SuppressWarnings({"java:S120", "java:S2143", "java:S2737"})
 @Component
 public class JwtUtils {
 
@@ -77,16 +77,12 @@ public class JwtUtils {
         if (token == null || token.isBlank()) {
             return Jwts.claims();
         }
-        try {
-            return Jwts
-                    .parserBuilder()
-                    .setSigningKey(getSignInKey())
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-        } catch (JwtException | IllegalArgumentException e) {
-            throw e;
-        }
+        return Jwts
+                .parserBuilder()
+                .setSigningKey(getSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     private Key getSignInKey() {

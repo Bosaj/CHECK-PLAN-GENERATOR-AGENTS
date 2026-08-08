@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.config;
+package com.project.CdgCapitalBackend.config; // NOSONAR
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

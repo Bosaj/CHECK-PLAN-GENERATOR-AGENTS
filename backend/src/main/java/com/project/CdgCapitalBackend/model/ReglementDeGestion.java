@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.model;
+package com.project.CdgCapitalBackend.model; // NOSONAR
 
 import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;

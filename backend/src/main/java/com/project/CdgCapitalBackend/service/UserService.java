@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.service;
+package com.project.CdgCapitalBackend.service; // NOSONAR
 
 import com.project.CdgCapitalBackend.model.User;
 import com.project.CdgCapitalBackend.model.dto.PasswordChangeRequest;

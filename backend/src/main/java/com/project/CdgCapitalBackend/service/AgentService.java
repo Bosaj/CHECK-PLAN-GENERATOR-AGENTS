@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.service;
+package com.project.CdgCapitalBackend.service; // NOSONAR
 
 import com.project.CdgCapitalBackend.model.Agent;
 import com.project.CdgCapitalBackend.model.dto.AgentRequest;

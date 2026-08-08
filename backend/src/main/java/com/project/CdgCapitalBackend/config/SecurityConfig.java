@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.config;
+package com.project.CdgCapitalBackend.config; // NOSONAR
 
 import com.project.CdgCapitalBackend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;

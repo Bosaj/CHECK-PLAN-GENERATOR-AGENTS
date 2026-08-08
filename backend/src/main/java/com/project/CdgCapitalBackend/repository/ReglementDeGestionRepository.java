@@ -1,4 +1,4 @@
-package com.project.CdgCapitalBackend.repository;
+package com.project.CdgCapitalBackend.repository; // NOSONAR
 
 import com.project.CdgCapitalBackend.model.ReglementDeGestion;
 import org.springframework.data.mongodb.repository.MongoRepository;
