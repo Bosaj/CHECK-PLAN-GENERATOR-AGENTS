@@ -57,7 +57,7 @@ export const checkPlannerService = {
           // Don't set Content-Type header when using FormData
           // The browser will set it with the correct boundary
           headers: {
-            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Accept': 'application/json',
           },
           credentials: 'include', // Include cookies if needed
         });
@@ -75,25 +75,31 @@ export const checkPlannerService = {
       console.log("=== RESPONSE RECEIVED ===");
       console.log("Status:", response.status, response.statusText);
       console.log("Headers:", Object.fromEntries(response.headers.entries()));
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("API Error:", errorText);
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
-      
-      // Get the filename from the Content-Disposition header or use a default
-      const contentDisposition = response.headers.get('content-disposition') || '';
-      let filename = 'result.xlsx';
-      
-      // Extract filename from content-disposition header
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, '');
+
+      // /generate returns JSON (AgentResult: rg_path, max_pages, max_rgs, output_file) —
+      // output_file is only a server-side filesystem path, never the file bytes. The actual
+      // spreadsheet has to be fetched separately from /download/{filename}.
+      const agentResult = await response.json();
+      console.log("Agent result:", agentResult);
+
+      if (!agentResult.output_file) {
+        throw new Error(agentResult.error || "Aucun fichier de plan de contrôle généré");
       }
-      
+
+      const filename = agentResult.output_file.split(/[\\/]/).pop();
+      const downloadResponse = await fetch(`${API_BASE_URL}/download/${encodeURIComponent(filename)}`);
+      if (!downloadResponse.ok) {
+        throw new Error(`Impossible de récupérer le fichier généré: ${downloadResponse.status}`);
+      }
+
       // Get the blob from the response
-      const blob = await response.blob();
+      const blob = await downloadResponse.blob();
       
       // Create a temporary URL for the blob
       const url = window.URL.createObjectURL(blob);
@@ -125,6 +131,12 @@ export const checkPlannerService = {
       console.log('Avant la définition de sendToBackend');
       
       // Fonction pour envoyer le fichier au backend Spring en arrière-plan
+      // NOTE: /api/plan-controle/upload/{id} n'existe pas côté backend Spring (aucune
+      // route "plan-controle" dans backend/src) et la réponse de getReglementByAgent
+      // n'expose ni id/_id/fileId — cette fonction ne peut donc pas réussir tant que ce
+      // endpoint n'est pas implémenté. Les échecs sont attendus ici : console.warn (pas
+      // console.error) pour ne pas déclencher l'overlay d'erreur Next.js en dev pour une
+      // branche déjà catchée et non bloquante pour le flux principal.
       const sendToBackend = async (excelFile, agentId) => {
         console.log('=== DÉBUT - sendToBackend ===');
         try {
@@ -144,28 +156,30 @@ export const checkPlannerService = {
             reglementInfo = await fileService.getReglementByAgent(agentId);
             console.log('Réponse de getReglementByAgent:', reglementInfo);
           } catch (error) {
-            console.error('Erreur lors de l\'appel à getReglementByAgent:', error);
+            console.warn('Erreur lors de l\'appel à getReglementByAgent:', error);
             return;
           }
-          
+
           if (!reglementInfo || Object.keys(reglementInfo).length === 0) {
             console.warn('Aucun règlement trouvé pour cet agent, impossible de procéder à l\'upload');
             console.log('Agent ID utilisé:', agentId);
             return;
           }
-          
-          // Utiliser l'ID du fichier comme identifiant du règlement
+
+          // getReglementByAgent ne renvoie ni id/_id/fileId (voir note ci-dessus) : cette
+          // branche est donc toujours prise pour l'instant, tant que le backend n'exposera
+          // pas un identifiant de règlement dédié.
           const reglementId = reglementInfo.fileId || reglementInfo._id || reglementInfo.id;
           console.log('ID du règlement trouvé:', reglementId);
-          
+
           if (!reglementId) {
-            console.error('Aucun ID de règlement valide trouvé dans la réponse:', reglementInfo);
+            console.warn('Aucun ID de règlement valide trouvé dans la réponse (endpoint backend pas encore implémenté):', reglementInfo);
             return;
           }
-          
+
           // Vérifier que le fichier Excel existe
           if (!excelFile) {
-            console.error('Aucun fichier Excel à envoyer');
+            console.warn('Aucun fichier Excel à envoyer');
             return;
           }
           
@@ -189,23 +203,23 @@ export const checkPlannerService = {
             console.log('- planDeControleApi.upload est une fonction:', typeof planDeControleApi.upload === 'function');
             
             if (!excelFile || !(excelFile instanceof File) || !reglementId) {
-              console.error('Paramètres invalides pour l\'upload');
+              console.warn('Paramètres invalides pour l\'upload');
               return;
             }
-            
+
             console.log('Appel à planDeControleApi.upload...');
             const result = await planDeControleApi.upload(excelFile, reglementId);
             console.log('=== APRÈS APPEL planDeControleApi.upload ===');
             console.log('Réponse de planDeControleApi.upload:', result);
           } catch (uploadError) {
-            console.error('Erreur lors de l\'appel à planDeControleApi.upload:', uploadError);
+            console.warn('Erreur lors de l\'appel à planDeControleApi.upload:', uploadError);
             throw uploadError;
           }
-          
+
         } catch (error) {
-          console.error('Erreur lors de l\'envoi au backend Spring (arrière-plan):', error);
+          console.warn('Erreur lors de l\'envoi au backend Spring (arrière-plan):', error);
           if (error.response) {
-            console.error('Détails de l\'erreur:', {
+            console.warn('Détails de l\'erreur:', {
               status: error.response.status,
               statusText: error.response.statusText,
               headers: error.response.headers,
@@ -229,7 +243,7 @@ export const checkPlannerService = {
         
       console.log('Appel à sendToBackend lancé');
       
-      return { success: true, filename, url };
+      return { success: true, filename, url, ...agentResult };
     } catch (error) {
       console.error("Error in generateCheckPlan:", error);
       

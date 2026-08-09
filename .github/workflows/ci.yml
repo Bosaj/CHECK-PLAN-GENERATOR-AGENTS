@@ -56,7 +56,7 @@ jobs:
       - name: Build check
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080
+          NEXT_PUBLIC_API_URL: http://localhost:8081
           NEXT_PUBLIC_AI_AGENT_URL: http://localhost:8000
 
   docker-build:

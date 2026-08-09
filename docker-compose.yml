@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ai-agent:
     build:
@@ -7,9 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: cdg-check-planner-agent
     ports:
-      - "8000:8000"
+      - "8057:8057"
     environment:
-      - PORT=8000
       - GROQ_API_KEY=${GROQ_API_KEY}
     restart: unless-stopped
 
@@ -19,7 +16,7 @@ services:
       dockerfile: Dockerfile
     container_name: cdg-capital-backend
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/cdg_capital
       - JWT_SECRET=${JWT_SECRET:-defaultSecretKeyForJwtTokenGenerationMustBeLongEnough12345}
@@ -35,8 +32,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
-      - NEXT_PUBLIC_AI_AGENT_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - NEXT_PUBLIC_AI_AGENT_URL=http://localhost:8057
     depends_on:
       - java-backend
       - ai-agent

@@ -51,7 +51,10 @@ import {
 } from "lucide-react"
 import { getUser, updateUser, clearUser } from "@/lib/user-store"
 import { userApi } from "@/lib/api-service"
+import { agentService } from "@/lib/agent-service"
+import { executionService } from "@/lib/execution-service"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -153,6 +156,7 @@ export default function ProfilePage() {
       
       setUser(localUpdatedUser)
       setMessage({ type: "success", text: "Profil mis à jour avec succès" })
+      toast.success("Profil mis à jour avec succès")
     } catch (error) {
       console.error("Error updating profile:", error)
       setMessage({ type: "error", text: error.message || "Une erreur est survenue. Veuillez réessayer." })
@@ -202,6 +206,7 @@ export default function ProfilePage() {
       setConfirmPassword("")
       
       setPasswordMessage({ type: "success", text: "Mot de passe modifié avec succès" })
+      toast.success("Mot de passe modifié avec succès")
     } catch (error) {
       console.error("Error changing password:", error)
       setPasswordMessage({ type: "error", text: error.message || "Une erreur est survenue. Veuillez réessayer." })
@@ -210,6 +215,39 @@ export default function ProfilePage() {
     }
   }
   
+  const handleExportData = async () => {
+    if (!user?.id) return
+
+    try {
+      const [agents, executions] = await Promise.all([
+        agentService.getAgentsByUserId(user.id),
+        executionService.getExecutionsByUserId(user.id),
+      ])
+
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        profile: { id: user.id, name: user.name, email: user.email },
+        agents,
+        executions,
+      }
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `cdg-capital-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast.success("Export généré avec succès")
+    } catch (error) {
+      console.error("Error exporting data:", error)
+      toast.error("Erreur lors de l'export des données")
+    }
+  }
+
   const handleDeleteAccount = async () => {
     setIsDeleteLoading(true)
     
@@ -225,7 +263,7 @@ export default function ProfilePage() {
       router.push("/")
     } catch (error) {
       console.error("Error deleting account:", error)
-      alert(error.message || "Une erreur est survenue lors de la suppression du compte.")
+      toast.error(error.message || "Une erreur est survenue lors de la suppression du compte.")
     } finally {
       setIsDeleteLoading(false)
     }
@@ -379,15 +417,16 @@ export default function ProfilePage() {
                   <Label htmlFor="current-password">Mot de passe actuel</Label>
                   <div className="relative">
                     <Input 
-                      id="current-password" 
+                      id="current-password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Entrez votre mot de passe actuel" 
+                      placeholder="Entrez votre mot de passe actuel"
                     />
                     <button 
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -402,22 +441,24 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nouveau mot de passe</Label>
                   <Input 
-                    id="new-password" 
+                    id="new-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Entrez votre nouveau mot de passe" 
+                    placeholder="Entrez votre nouveau mot de passe"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
                   <Input 
-                    id="confirm-password" 
+                    id="confirm-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirmez votre nouveau mot de passe" 
+                    placeholder="Confirmez votre nouveau mot de passe"
                   />
                 </div>
                 
@@ -547,7 +588,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-muted-foreground mb-2">
                   Téléchargez une copie de vos données personnelles.
                 </p>
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleExportData}>
                   Exporter mes données
                 </Button>
               </div>

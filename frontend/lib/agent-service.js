@@ -3,6 +3,13 @@
 const API_URL = 'http://localhost:8081/api';
 const USE_LOCAL_STORAGE = false; // Utiliser l'API pour enregistrer dans la base de données MongoDB
 
+// Évite qu'un backend up mais lent ne bloque la navigation indéfiniment (fetch n'a pas de timeout natif)
+const fetchWithTimeout = (url, options = {}, timeoutMs = 400) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+};
+
 // Fonction utilitaire pour obtenir les en-têtes
 const getHeaders = () => {
   const headers = {
@@ -175,16 +182,11 @@ export const agentService = {
     }
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 400);
-
-      const response = await fetch(`${API_URL}/agents`, {
+      const response = await fetchWithTimeout(`${API_URL}/agents`, {
         method: 'GET',
-        headers: getHeaders(),
-        signal: controller.signal
+        headers: getHeaders()
       });
-      clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         return localStorageService.getAllAgents();
       }
@@ -204,16 +206,11 @@ export const agentService = {
     }
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 400);
-
-      const response = await fetch(`${API_URL}/agents/user/${userId}`, {
+      const response = await fetchWithTimeout(`${API_URL}/agents/user/${userId}`, {
         method: 'GET',
-        headers: getHeaders(),
-        signal: controller.signal
+        headers: getHeaders()
       });
-      clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         return localStorageService.getAgentsByUserId(userId);
       }
@@ -231,11 +228,11 @@ export const agentService = {
     }
     
     try {
-      const response = await fetch(`${API_URL}/agents/${id}`, {
+      const response = await fetchWithTimeout(`${API_URL}/agents/${id}`, {
         method: 'GET',
         headers: getHeaders()
       });
-      
+
       if (!response.ok) {
         return localStorageService.getAgentById(id);
       }
@@ -331,9 +328,10 @@ export const agentService = {
       });
       
       if (!response.ok) {
-        throw new Error(`Erreur lors de la suppression de l'agent: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur lors de la suppression de l'agent: ${response.status}`);
       }
-      
+
       // Mettre à jour les statistiques de l'utilisateur
       try {
         // Récupérer l'ID de l'utilisateur actuel
@@ -360,10 +358,13 @@ export const agentService = {
       return true;
     } catch (error) {
       console.error('Erreur:', error);
-      return false;
+      // Remonter l'erreur (message inclus, ex: "exécution en cours") plutôt que de la
+      // masquer derrière un simple `false` — l'appelant affichait un succès dans tous
+      // les cas puisqu'il n'a jamais vérifié cette valeur de retour.
+      throw error;
     }
   },
-  
+
   // Invoice operations
   getInvoicesByAgentId: async (agentId) => {
     if (USE_LOCAL_STORAGE) {

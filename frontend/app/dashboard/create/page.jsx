@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,68 +11,23 @@ import { AlertCircle, Bot, FileUp, Loader2, Plus, X, FileText } from "lucide-rea
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { agentService } from "@/lib/agent-service"
 import { fileService } from "@/lib/file-service"
+import { toast } from "sonner"
 
 export default function CreateAgent() {
   const router = useRouter()
   const fileInputRef = useRef(null)
   
-  // Désactiver les notifications d'erreur du navigateur
-  useEffect(() => {
-    // Supprimer les notifications existantes
-    const errorElements = document.querySelectorAll('.error-notification, div[role="alert"]');
-    errorElements.forEach(el => el.remove());
-    
-    // Empêcher l'affichage des futures notifications
-    const originalConsoleError = console.error;
-    console.error = function() {};
-    
-    // Intercepter les erreurs non capturées
-    const errorHandler = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
-    };
-    
-    window.addEventListener('error', errorHandler, true);
-    
-    // Nettoyer
-    return () => {
-      console.error = originalConsoleError;
-      window.removeEventListener('error', errorHandler, true);
-    };
-  }, []);
-
   const [agentName, setAgentName] = useState("")
   const [agentRole, setAgentRole] = useState("")
   const [reglement, setReglement] = useState(null)
-  // Suppression des états d'erreur et de succès pour éviter les alertes
-  // const [error, setError] = useState("")
-  // const [success, setSuccess] = useState("")  
+  const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdAgentId, setCreatedAgentId] = useState(null)
-  
-  // Effet pour supprimer les notifications d'erreur
-  useEffect(() => {
-    // Fonction pour supprimer les notifications d'erreur
-    const removeErrorNotifications = () => {
-      // Sélecteur pour cibler les notifications d'erreur
-      const errorNotifications = document.querySelectorAll('div[role="alert"]');
-      
-      // Supprimer chaque notification
-      errorNotifications.forEach(notification => {
-        notification.remove();
-      });
-    };
-    
-    // Exécuter immédiatement
-    removeErrorNotifications();
-    
-    // Configurer un intervalle pour vérifier et supprimer régulièrement
-    const interval = setInterval(removeErrorNotifications, 100);
-    
-    // Nettoyer l'intervalle lors du démontage du composant
-    return () => clearInterval(interval);
-  }, []);
+
+  // README documents MAX_UPLOAD_BYTES=50MB as an enforced backend limit (check_planner's
+  // LimitUploadSizeMiddleware returns 413) — validate client-side too instead of only
+  // finding out after a multi-second upload.
+  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
   // Fonction pour gérer l'upload du règlement
   const handleReglementUpload = (files) => {
@@ -93,7 +48,15 @@ export default function CreateAgent() {
       size: file.size,
       lastModified: file.lastModified
     });
-    
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`Le fichier dépasse la taille maximale autorisée (50 Mo). Taille actuelle: ${(file.size / (1024 * 1024)).toFixed(1)} Mo.`)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return;
+    }
+
+    setError("")
+
     try {
       // Store the actual File object instead of converting to base64
       const reglementData = {
@@ -120,10 +83,11 @@ export default function CreateAgent() {
   // Fonction pour créer un agent
   const handleCreateAgent = async () => {
     if (!agentName.trim()) {
-      // Ne pas afficher d'erreur
+      setError("Le nom de l'agent est requis");
       return;
     }
 
+    setError("");
     setIsSubmitting(true);
 
     try {
@@ -183,8 +147,7 @@ export default function CreateAgent() {
           
           uploadPromises.push(uploadPromise);
         } catch (error) {
-          // Suppression du log d'erreur
-          // console.error("Erreur lors de l'upload du règlement:", error);
+          console.error("Erreur lors de l'upload du règlement:", error);
         }
       } else {
         console.log("Aucun règlement à uploader pour l'agent:", createdAgent.id);
@@ -203,42 +166,52 @@ export default function CreateAgent() {
       // Stocker temporairement l'ID de l'agent dans le localStorage pour la redirection
       localStorage.setItem('lastCreatedAgentId', createdAgent.id);
       
+      // Lire le fichier une seule fois en base64 : handleReglementUpload ne stocke que le
+      // File brut (pas de fileDataBase64), donc reglement.fileDataBase64 était toujours
+      // undefined ici — l'entrée localStorage n'avait jamais de données, seulement les
+      // métadonnées. Résultat : la première exécution marchait via le sessionStorage
+      // ci-dessous (à usage unique, supprimé après lecture), mais toute exécution suivante
+      // retombait sur cette entrée localStorage vide et échouait avec "pas de données base64".
+      const reglementBase64 = reglement ? await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(reglement.file);
+      }) : null;
+
       // Stocker le règlement original dans localStorage pour l'utiliser dans execute-agent
       if (reglement) {
         const reglementForStorage = [{
           name: reglement.name,
           fileType: reglement.file.type,
-          fileDataBase64: reglement.fileDataBase64
+          fileDataBase64: reglementBase64
         }];
         localStorage.setItem('executeAgent_documents', JSON.stringify(reglementForStorage));
       }
-      
+
       // Redirection directe vers la nouvelle page d'exécution
       console.log("Redirection vers la page d'exécution avec l'ID:", createdAgent.id);
-      
+
       // Prepare the file data to pass to the execute page
       const fileData = reglement ? {
         name: reglement.name,
         type: reglement.fileType,
         size: reglement.fileSize,
-        data: await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(reglement.file);
-        })
+        data: reglementBase64
       } : null;
       
       // Store the file data in session storage temporarily
       sessionStorage.setItem(`agent_${createdAgent.id}_file`, JSON.stringify(fileData));
       
       // Redirect to the execute page with the agent ID
+      toast.success("Agent créé avec succès", { description: agentName.trim() });
       router.push(`/dashboard/execute-agent?agentId=${createdAgent.id}`);
-      
+
       return createdAgent.id;
     } catch (error) {
-      // Suppression du log d'erreur
-      // console.error("Error creating agent:", error)
-      // Ne pas afficher d'erreur
+      console.error("Error creating agent:", error)
+      const message = error.message || "Erreur lors de la création de l'agent"
+      setError(message)
+      toast.error(message)
       setIsSubmitting(false)
       return null;
     } finally {
@@ -249,7 +222,15 @@ export default function CreateAgent() {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">Créer un nouvel agent</h1>
-      
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Informations de l'agent</CardTitle>
@@ -310,7 +291,7 @@ export default function CreateAgent() {
                 accept=".pdf"
                 disabled={isSubmitting}
               />
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-muted-foreground">
                 Format accepté: PDF uniquement
               </span>
             </div>
@@ -319,9 +300,9 @@ export default function CreateAgent() {
               <div className="space-y-2">
                 <Label>Règlement téléchargé</Label>
                 <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <div className="flex items-center justify-between bg-muted p-2 rounded">
                     <div className="flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                      <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">{reglement.name}</span>
                     </div>
                     <Button 
@@ -330,7 +311,7 @@ export default function CreateAgent() {
                       onClick={handleRemoveReglement}
                       disabled={isSubmitting}
                     >
-                      <X className="h-4 w-4 text-gray-500" />
+                      <X className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </div>
                 </div>
@@ -351,20 +332,12 @@ export default function CreateAgent() {
           Annuler
         </Button>
         
-        <Button 
+        <Button
           type="button"
           disabled={isSubmitting}
-          onClick={async (e) => {
+          onClick={(e) => {
             e.preventDefault();
-            try {
-              const agentId = await handleCreateAgent();
-              if (agentId) {
-                // Redirection directe - Méthode 2
-                window.location.href = `/dashboard/execute-agent?agentId=${agentId}`;
-              }
-            } catch (error) {
-              console.error("Erreur lors de la création de l'agent:", error);
-            }
+            handleCreateAgent();
           }}
         >
           {isSubmitting ? (

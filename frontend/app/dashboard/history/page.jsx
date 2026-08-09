@@ -26,10 +26,19 @@ export default function HistoryPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Charger toutes les exécutions
-        const executionsData = await executionService.getAllExecutions();
-        
+
+        // getAllExecutions()/getAllAgents() retournent les données de TOUS les
+        // utilisateurs sans filtrage — l'historique affichait les exécutions d'autres
+        // comptes. Scoper à l'utilisateur courant.
+        const userStr = localStorage.getItem('opti_agent_user');
+        const currentUserId = userStr ? JSON.parse(userStr).id : null;
+
+        // Exécutions et agents sont indépendants : les charger en parallèle
+        const [executionsData, agentsData] = await Promise.all([
+          executionService.getExecutionsByUserId(currentUserId),
+          agentService.getAgentsByUserId(currentUserId)
+        ]);
+
         // Trier les exécutions de la plus récente à la plus ancienne
         const sortedExecutions = executionsData.sort((a, b) => {
           const dateA = new Date(a.startTime || 0);
@@ -45,11 +54,8 @@ export default function HistoryPage() {
         
         setExecutions(normalizedExecutions);
         setFilteredExecutions(normalizedExecutions);
-        
-        // Charger tous les agents pour pouvoir afficher leurs noms
-        const agentsData = await agentService.getAllAgents();
         setAgents(agentsData);
-        
+
         setLoading(false);
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error);

@@ -7,6 +7,7 @@ RUN npm install --legacy-peer-deps
 
 FROM node:22-alpine3.22 AS builder
 WORKDIR /app
+RUN apk upgrade --no-cache
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -16,7 +17,7 @@ FROM node:22-alpine3.22 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apk upgrade --no-cache && addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules

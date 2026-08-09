@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter } from "next/navigation"
-import { saveUser } from "@/lib/user-store"
+import { saveUser, findOrCreateUserByEmail } from "@/lib/user-store"
+import { authApi } from "@/lib/api-service"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
@@ -83,20 +84,31 @@ export default function AuthPage() {
     }
 
     try {
-      const userData = {
-        id: "user-" + Date.now(),
-        name: loginEmail.split('@')[0] || "Utilisateur CDG",
-        email: loginEmail,
-        profileImage: null,
-        token: "demo-jwt-token"
-      }
-
-      saveUser(userData)
+      // Vraie authentification JWT contre le backend Spring (mot de passe vérifié,
+      // utilisateur persisté en MongoDB avec un id stable).
+      const authResponse = await authApi.login({ email: loginEmail, password: loginPassword })
+      saveUser(authResponse)
       localStorage.setItem("isAuthenticated", "true")
       router.push("/dashboard")
     } catch (err) {
-      setError(err.message || "Une erreur est survenue. Veuillez réessayer.")
-      console.error(err)
+      if (err.name === 'TypeError') {
+        // Backend inaccessible (pas une erreur d'identifiants) : retomber sur le mode
+        // démo local plutôt que de bloquer l'utilisateur. Réutilise l'id existant pour cet
+        // email au lieu d'en générer un nouveau — sinon tous les agents/exécutions
+        // précédents, filtrés par userId, deviennent invisibles à chaque connexion.
+        console.warn("Backend d'authentification indisponible, passage en mode démo local:", err)
+        const persistedUser = findOrCreateUserByEmail(loginEmail, {
+          name: loginEmail.split('@')[0] || "Utilisateur CDG",
+          profileImage: null,
+          token: "demo-jwt-token"
+        })
+        saveUser(persistedUser)
+        localStorage.setItem("isAuthenticated", "true")
+        router.push("/dashboard")
+      } else {
+        setError(err.message || "Une erreur est survenue. Veuillez réessayer.")
+        console.error(err)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -133,23 +145,28 @@ export default function AuthPage() {
     }
 
     try {
-      const userData = {
-        id: "user-" + Date.now(),
-        name: registerName,
-        email: registerEmail,
-        profileImage: null,
-        token: "demo-jwt-token"
-      }
-      
-      saveUser(userData)
-      // Initialiser un historique vide pour le nouvel utilisateur
-      localStorage.setItem('executions', JSON.stringify([]));
-      
+      // Vraie inscription contre le backend Spring (mot de passe hashé, utilisateur
+      // persisté en MongoDB avec un id stable).
+      const authResponse = await authApi.register({ name: registerName, email: registerEmail, password: registerPassword })
+      saveUser(authResponse)
       localStorage.setItem("isAuthenticated", "true")
       router.push("/dashboard")
     } catch (err) {
-      setError(err.message || "Une erreur est survenue. Veuillez réessayer.")
-      console.error(err)
+      if (err.name === 'TypeError') {
+        // Backend inaccessible : retomber sur le mode démo local (voir handleLogin).
+        console.warn("Backend d'authentification indisponible, passage en mode démo local:", err)
+        const persistedUser = findOrCreateUserByEmail(registerEmail, {
+          name: registerName,
+          profileImage: null,
+          token: "demo-jwt-token"
+        })
+        saveUser(persistedUser)
+        localStorage.setItem("isAuthenticated", "true")
+        router.push("/dashboard")
+      } else {
+        setError(err.message || "Une erreur est survenue. Veuillez réessayer.")
+        console.error(err)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -182,9 +199,13 @@ export default function AuthPage() {
        <Card className="w-full max-w-md border-brand/20 shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 flex items-center justify-center">
-            <Image src="/CDGCAPITALIMAGE.png" alt="CDG Capital Logo" width={180} height={180} className="rounded-md shadow-2xl drop-shadow-2xl" priority />
+            {/* Le logo n'a pas de fond transparent — le traiter comme un badge encadré
+                avec du padding plutôt qu'un rectangle blanc flottant sans marge. */}
+            <div className="rounded-2xl bg-white p-4 shadow-xl">
+              <Image src="/CDGCAPITALIMAGE.png" alt="CDG Capital Logo" width={140} height={140} style={{ width: "140px", height: "140px" }} className="rounded-lg" priority />
+            </div>
           </div>
-          <CardDescription>Simulation d'agents IA pour l'automatisation des processus robotiques</CardDescription>
+          <CardDescription>Générez automatiquement vos plans de contrôle à partir de vos règlements de gestion</CardDescription>
         </CardHeader>
         <CardContent>
           {forgotPasswordMode ? (
@@ -266,8 +287,9 @@ export default function AuthPage() {
                       </Button>
                     </div>
                     <Input 
-                      id="login-password" 
+                      id="login-password"
                       type="password"
+                      autoComplete="current-password"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required 
@@ -305,8 +327,9 @@ export default function AuthPage() {
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Mot de passe</Label>
                     <Input 
-                      id="register-password" 
+                      id="register-password"
                       type="password"
+                      autoComplete="new-password"
                       value={registerPassword}
                       onChange={handlePasswordChange}
                       required 
@@ -314,11 +337,11 @@ export default function AuthPage() {
                     {registerPassword && (
                       <div className="space-y-1 mt-1">
                         <Progress value={passwordStrength} className={getPasswordStrengthColor()} />
-                        <p className="text-xs text-gray-500 flex justify-between">
+                        <p className="text-xs text-muted-foreground flex justify-between">
                           <span>Force du mot de passe: {getPasswordStrengthText()}</span>
                           <span>{passwordStrength}%</span>
                         </p>
-                        <ul className="text-xs text-gray-500 list-disc pl-5 mt-1">
+                        <ul className="text-xs text-muted-foreground list-disc pl-5 mt-1">
                           <li className={registerPassword.length >= 8 ? "text-green-600" : ""}>
                             Au moins 8 caractères
                           </li>
@@ -338,8 +361,9 @@ export default function AuthPage() {
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
                     <Input 
-                      id="confirm-password" 
+                      id="confirm-password"
                       type="password"
+                      autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required 

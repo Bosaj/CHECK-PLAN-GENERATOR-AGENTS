@@ -38,4 +38,33 @@ export function clearUser() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(USER_STORAGE_KEY)
   }
-} 
+}
+
+const USERS_LIST_KEY = "opti_agent_users"
+
+// Login/register both need the *same* userId across sessions for a given email,
+// otherwise every previously created agent/execution (filtered by userId) becomes
+// invisible the next time that email logs in. Reuses the id from a prior
+// registration/login for that email instead of minting a new one each time.
+export function findOrCreateUserByEmail(email, extra = {}) {
+  if (typeof window === "undefined") return null
+
+  let users = []
+  try {
+    users = JSON.parse(localStorage.getItem(USERS_LIST_KEY) || "[]")
+  } catch (error) {
+    console.error("Error reading users list:", error)
+  }
+
+  const normalizedEmail = email.trim().toLowerCase()
+  const existing = users.find((u) => u.email?.toLowerCase() === normalizedEmail)
+  if (existing) {
+    const updated = { ...existing, ...extra, email: existing.email }
+    localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users.map((u) => (u === existing ? updated : u))))
+    return updated
+  }
+
+  const created = { id: "user-" + Date.now(), email: normalizedEmail, ...extra }
+  localStorage.setItem(USERS_LIST_KEY, JSON.stringify([...users, created]))
+  return created
+}

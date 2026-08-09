@@ -14,6 +14,7 @@ import { fileService } from "@/lib/file-service"
 import { executionService } from "@/lib/execution-service"
 import { checkPlannerService } from "@/lib/check-planner-service"
 import { userService } from "@/lib/user-service"
+import { toast } from "sonner"
 
 export default function ExecuteAgentPage() {
   const router = useRouter()
@@ -103,10 +104,14 @@ export default function ExecuteAgentPage() {
         const documentsData = reglementData ? [reglementData] : [];
         console.log("Documents chargés:", documentsData);
 
-        // Combiner les documents originaux avec ceux de la base de données
-        const allDocuments = [...originalDocuments, ...documentsData];
+        // Un seul règlement par agent (voir create/page.jsx) : originalDocuments (copie
+        // locale, avant upload) et documentsData (copie backend, faisant autorité) sont
+        // la MÊME règlement, pas deux documents différents — les concaténer affichait le
+        // même fichier deux fois. Préférer la copie backend ; ne retomber sur la copie
+        // locale que si le backend n'a rien retourné (ex: backend indisponible).
+        const allDocuments = documentsData.length > 0 ? documentsData : originalDocuments;
         setDocuments(allDocuments);
-        
+
         console.log("Documents combinés:", allDocuments);
 
       } catch (error) {
@@ -123,6 +128,7 @@ export default function ExecuteAgentPage() {
   const handleExecuteAgent = async () => {
     if (!agent || documents.length === 0) {
       setError("Agent ou documents manquants");
+      toast.error("Agent ou documents manquants");
       return;
     }
 
@@ -219,25 +225,25 @@ export default function ExecuteAgentPage() {
         try {
           const reglement = await fileService.getReglementByAgent(agent.id);
           console.log("Regulation data from server:", reglement);
-          
-          if (reglement && reglement.id) {
-            console.log("Regulation found, downloading file...");
+
+          // The backend embeds the file inline as base64 (`pdfData`) — there's no
+          // separate `id`/download endpoint to hit for this response shape.
+          if (reglement && reglement.pdfData) {
+            console.log("Regulation found, decoding embedded PDF data...");
             try {
-              const fileBlob = await fileService.downloadReglementFile(reglement.id);
-              console.log("Downloaded blob:", fileBlob);
-              
-              if (fileBlob && fileBlob.size > 0) {
-                const file = new File([fileBlob], reglement.fileName || 'reglement.pdf', { 
-                  type: 'application/pdf' 
-                });
-                documentFiles.push(file);
-                console.log(`Successfully downloaded regulation file, size: ${file.size} bytes`);
-              } else {
-                throw new Error("Downloaded file is empty or invalid");
+              const byteString = atob(reglement.pdfData);
+              const bytes = new Uint8Array(byteString.length);
+              for (let i = 0; i < byteString.length; i++) {
+                bytes[i] = byteString.charCodeAt(i);
               }
-            } catch (downloadError) {
-              console.error("Error downloading file:", downloadError);
-              throw new Error("Failed to download regulation file");
+              const file = new File([bytes], reglement.fileName || 'reglement.pdf', {
+                type: reglement.contentType || 'application/pdf'
+              });
+              documentFiles.push(file);
+              console.log(`Successfully loaded regulation file, size: ${file.size} bytes`);
+            } catch (decodeError) {
+              console.error("Error decoding regulation file:", decodeError);
+              throw new Error("Failed to decode regulation file");
             }
           } else {
             console.error("No regulation file found in server response");
@@ -247,8 +253,9 @@ export default function ExecuteAgentPage() {
           }
         } catch (error) {
           console.error("Error getting regulation file:", error);
-          // Instead of creating a test file, we'll show an error to the user
-          setError("No regulation file found. Please upload a regulation file first.");
+          const message = "Aucun règlement trouvé pour cet agent. Veuillez d'abord en télécharger un.";
+          setError(message);
+          toast.error(message);
           setExecutionProgress(0);
           setIsExecuting(false);
           return;
@@ -376,6 +383,7 @@ export default function ExecuteAgentPage() {
       if (documentFiles.length === 0) {
         console.error("Aucun fichier à traiter - arrêt de l'exécution");
         setError("Aucun fichier de règlement trouvé pour cet agent");
+        toast.error("Aucun fichier de règlement trouvé pour cet agent");
         setIsExecuting(false);
         return;
       }
@@ -418,32 +426,37 @@ export default function ExecuteAgentPage() {
       }
       
       setExecutionProgress(100);
-      setExecutionResults({ 
-        status: "Terminé", 
+      setExecutionResults({
+        status: "Terminé",
         documentsProcessed: documentFiles.length,
         timestamp: new Date().toISOString()
       });
       setIsExecuting(false);
-      
+      toast.success("Exécution terminée", { description: `${documentFiles.length} document(s) traité(s)` });
+
       // Basculer automatiquement vers l'onglet Plan de contrôle
       setActiveTab("checkplan");
     } catch (error) {
       console.error("Erreur lors de l'exécution de l'agent:", error);
       setError("Erreur lors de l'exécution de l'agent");
+      toast.error("Erreur lors de l'exécution de l'agent");
       setIsExecuting(false);
     }
   };
 
   const handleViewDocument = (documentId) => {
     const document = documents.find(doc => doc.id === documentId);
-    if (document) {
-      if (document.isOriginal) {
-        // Ouvrir le fichier original depuis base64
-        window.open(document.fileDataBase64, '_blank');
-      } else {
-        // Pour les règlements, afficher un message car nous n'avons pas de méthode de téléchargement
-        alert('Visualisation du règlement non disponible');
-      }
+    if (!document) return;
+
+    if (document.isOriginal) {
+      // Ouvrir le fichier original depuis base64
+      window.open(document.fileDataBase64, '_blank');
+    } else if (document.pdfData) {
+      // Le règlement provenant du backend est en base64 brut (pas une data URL) —
+      // le reconstruire pour pouvoir l'ouvrir dans un nouvel onglet.
+      window.open(`data:${document.contentType || 'application/pdf'};base64,${document.pdfData}`, '_blank');
+    } else {
+      toast.error('Visualisation du règlement non disponible');
     }
   };
 
@@ -507,9 +520,9 @@ export default function ExecuteAgentPage() {
                     {documents && documents.length > 0 ? (
                       <div className="space-y-2">
                         {documents.map((document, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                          <div key={index} className="flex items-center justify-between bg-muted p-3 rounded-md">
                             <div className="flex items-center">
-                              <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                               <span className="text-sm truncate max-w-[180px]">{document.fileName || document.name}</span>
                             </div>
                             <Button
@@ -523,7 +536,7 @@ export default function ExecuteAgentPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">Aucun règlement disponible</p>
+                      <p className="text-sm text-muted-foreground">Aucun règlement disponible</p>
                     )}
                   </CardContent>
                 </Card>
@@ -539,7 +552,7 @@ export default function ExecuteAgentPage() {
                 <CardContent>
                   {isExecuting ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">Analyse en cours...</p>
+                      <p className="text-muted-foreground mb-4">Analyse en cours...</p>
                       <Progress value={executionProgress} max={100} />
                     </div>
                   ) : executionResults ? (
@@ -549,7 +562,7 @@ export default function ExecuteAgentPage() {
                           <h3 className="text-lg font-medium mb-2">Résultats de l'analyse</h3>
                           <div className="space-y-2">
                             {executionResults.résultats.map((result, index) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-md">
+                              <div key={index} className="bg-muted p-3 rounded-md">
                                 <div className="flex justify-between mb-2">
                                   <span className="font-medium">{result.nom_fichier}</span>
                                   <span className={`text-sm px-2 py-1 rounded-full ${result.fraude === 'Oui' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
@@ -596,7 +609,7 @@ export default function ExecuteAgentPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">Aucun résultat disponible</p>
+                      <p className="text-muted-foreground mb-4">Aucun résultat disponible</p>
                       <Button 
                         onClick={handleExecuteAgent}
                         disabled={!agent || documents.length === 0}
@@ -621,33 +634,33 @@ export default function ExecuteAgentPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="font-medium">Statut</Label>
-                          <p className="text-sm">{checkPlanResults.status || 'Terminé'}</p>
+                          <p className="text-sm">{checkPlanResults.success ? 'Terminé' : 'Échoué'}</p>
                         </div>
                         <div>
                           <Label className="font-medium">Fichier de sortie</Label>
-                          <p className="text-sm">{checkPlanResults.output_file || 'Non disponible'}</p>
+                          <p className="text-sm">{checkPlanResults.filename || 'Non disponible'}</p>
+                        </div>
+                        <div>
+                          <Label className="font-medium">Pages analysées</Label>
+                          <p className="text-sm">{checkPlanResults.max_pages ?? 'Non disponible'}</p>
+                        </div>
+                        <div>
+                          <Label className="font-medium">Règlements traités</Label>
+                          <p className="text-sm">{checkPlanResults.max_rgs ?? 'Non disponible'}</p>
                         </div>
                       </div>
-                      
-                      {checkPlanResults.message && (
-                        <div>
-                          <Label className="font-medium">Message</Label>
-                          <p className="text-sm bg-gray-50 p-3 rounded-md">{checkPlanResults.message}</p>
-                        </div>
-                      )}
-                      
-                      {checkPlanResults.details && (
-                        <div>
-                          <Label className="font-medium">Détails</Label>
-                          <pre className="text-sm bg-gray-50 p-3 rounded-md overflow-auto max-h-96">
-                            {JSON.stringify(checkPlanResults.details, null, 2)}
-                          </pre>
-                        </div>
+
+                      {checkPlanResults.url && (
+                        <Button asChild variant="outline" size="sm">
+                          <a href={checkPlanResults.url} download={checkPlanResults.filename}>
+                            Télécharger à nouveau le plan de contrôle
+                          </a>
+                        </Button>
                       )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-gray-500">
+                      <p className="text-muted-foreground">
                         {isExecuting ? "Génération du plan de contrôle en cours..." : "Aucun plan de contrôle généré"}
                       </p>
                     </div>

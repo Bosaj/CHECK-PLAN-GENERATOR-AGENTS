@@ -8,6 +8,13 @@ import localStorageService from './local-storage-service';
 const API_URL = 'http://localhost:8081/api';
 const USE_LOCAL_STORAGE = false; // Mettre à false pour utiliser l'API backend au lieu du localStorage
 
+// Évite qu'un backend up mais lent ne bloque la navigation indéfiniment (fetch n'a pas de timeout natif)
+const fetchWithTimeout = (url, options = {}, timeoutMs = 400) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+};
+
 // Fonction utilitaire pour obtenir les en-têtes d'authentification
 const getAuthHeaders = () => {
   const headers = {
@@ -102,15 +109,15 @@ const executionService = {
     }
     
     try {
-      const response = await fetch(`${API_URL}/executions`, {
+      const response = await fetchWithTimeout(`${API_URL}/executions`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         return localStorageService.getExecutions();
       }
-      
+
       const data = await response.json();
       localStorage.setItem('opti_agent_executions_cache', JSON.stringify(data));
       localStorage.setItem('opti_agent_executions_cache_timestamp', now.toString());
@@ -129,11 +136,11 @@ const executionService = {
     }
     
     try {
-      const response = await fetch(`${API_URL}/executions/user/${userId}`, {
+      const response = await fetchWithTimeout(`${API_URL}/executions/user/${userId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         return localStorageService.getExecutionsByUserId(userId);
       }
@@ -157,7 +164,7 @@ const executionService = {
     }
     
     try {
-      const response = await fetch(`${API_URL}/executions/agent/${agentId}`, {
+      const response = await fetchWithTimeout(`${API_URL}/executions/agent/${agentId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -183,11 +190,11 @@ const executionService = {
     }
     
     try {
-      const response = await fetch(`${API_URL}/executions/${id}`, {
+      const response = await fetchWithTimeout(`${API_URL}/executions/${id}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         console.warn(`Erreur HTTP: ${response.status} ${response.statusText}`);
         // Utiliser le localStorage comme solution de secours

@@ -8,7 +8,7 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8081
 
 # Run as non-root user (fixes docker:S6471)
 RUN groupadd -r appgroup && useradd -r -g appgroup -d /app -s /sbin/nologin appuser \

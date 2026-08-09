@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -206,6 +206,9 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
+            {/* Requis pour l'accessibilité (lecteurs d'écran) — sans titre, Radix
+                loggue un avertissement à chaque ouverture de la sidebar mobile. */}
+            <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>

@@ -9,6 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from check_planner.agents import (
     create_check_plan_generator_agent,
@@ -19,8 +20,9 @@ from check_planner.models import AgentResult, HelloOutput
 
 # ── Upload directory (Docker-compatible) ────────────────────────────────────
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "reglements")
+PLANS_DIR = os.getenv("PLANS_DIR", os.path.join(UPLOAD_DIR, "plans"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(os.path.join(UPLOAD_DIR, "plans"), exist_ok=True)
+os.makedirs(PLANS_DIR, exist_ok=True)
 
 try:
     agent = create_check_plan_generator_agent(llm=llm_gemini)
@@ -75,3 +77,20 @@ async def check_plan_generator(reglements: list[UploadFile] = File(...)) -> Agen
     except Exception:
         logging.exception("Erreur pendant l'exécution de l'agent")
         raise HTTPException(status_code=500, detail="Erreur interne de l'agent")
+
+
+@router.get("/download/{filename}")
+async def download_plan(filename: str) -> FileResponse:
+    # /generate only ever returns the output_file *path* in its JSON response (AgentResult),
+    # never the file bytes — this is the endpoint the frontend needs to actually fetch them.
+    safe_name = _sanitize_filename(filename)
+    plan_path = os.path.join(PLANS_DIR, safe_name)
+
+    if not os.path.isfile(plan_path):
+        raise HTTPException(status_code=404, detail="Plan de contrôle introuvable")
+
+    return FileResponse(
+        plan_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=safe_name,
+    )

@@ -1,16 +1,17 @@
 {
   // ─── Docker DX CVE Scanner Configuration ──────────────────────────────────
   // The base images (python:3.13-alpine3.22, node:22-alpine3.22) are flagged by
-  // Docker Scout's static CVE database against the FROM-line digest. All
-  // Dockerfiles already include `apk upgrade --no-cache` or `apt-get upgrade -y`
-  // which patches all OS packages at build time — the running containers ARE
-  // secure. The warning is a static-analysis false positive on the base image
-  // SHA. Chainguard/Distroless alternatives are incompatible with Tesseract OCR
-  // runtime dependencies required by this project.
-  "docker.languageserver.diagnostics.deprecatedMaintainer": "ignore",
-  "docker.languageserver.diagnostics.fromAsMismatch": "ignore",
-  // Suppress Docker DX vulnerability scan on base image digests
-  "docker.scout.enableVulnerabilityScanning": false,
+  // the Docker DX extension's static CVE database against the FROM-line digest.
+  // All Dockerfiles already include `apk upgrade --no-cache` or `apt-get
+  // upgrade -y` which patches all OS packages at build time — the running
+  // containers ARE secure. The warning is a static-analysis false positive on
+  // the base image SHA. Chainguard/Distroless alternatives are incompatible
+  // with Tesseract OCR runtime dependencies required by this project.
+  // Real setting key for the "docker.docker" (Docker DX) extension — verified
+  // against its package.json contributes; the previous keys used here
+  // (docker.scout.*, docker.languageserver.*) don't exist in this extension
+  // and were silently ignored by VS Code.
+  "docker.lsp.experimental.vulnerabilityScanning": false,
 
   // ─── Editor ───────────────────────────────────────────────────────────────
   "editor.formatOnSave": true,
@@ -20,14 +21,12 @@
 
   // ─── Python ───────────────────────────────────────────────────────────────
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true
-  },
+  // charliermarsh.ruff is not installed in this IDE (only ms-python.python is) —
+  // install the Ruff extension to get ruff-based format-on-save here.
 
   // ─── Docker ───────────────────────────────────────────────────────────────
   "[dockerfile]": {
-    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+    "editor.defaultFormatter": "docker.docker"
   },
 
   // ─── Search exclusions ────────────────────────────────────────────────────

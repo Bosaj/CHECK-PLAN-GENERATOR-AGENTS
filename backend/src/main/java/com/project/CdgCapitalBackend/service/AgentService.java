@@ -79,11 +79,22 @@ public class AgentService {
                 });
     }
 
+    private static final String STATUS_EN_COURS = "EN_COURS";
+
     public boolean deleteAgent(String id) {
         if (id == null || id.isBlank()) {
             return false;
         }
         return agentRepository.findById(id).map(agent -> {
+            // Suppression en cascade des exécutions (voir plus bas) : si l'une d'elles est
+            // encore EN_COURS, la supprimer maintenant ferait disparaître son historique
+            // silencieusement pendant qu'elle tourne encore côté navigateur.
+            long running = executionRepository.countByAgentIdAndStatus(id, STATUS_EN_COURS);
+            if (running > 0) {
+                throw new IllegalStateException(
+                        "Impossible de supprimer cet agent : une exécution est encore en cours.");
+            }
+
             String userId = agent.getUserId();
             if (userId != null && !userId.isBlank()) {
                 userRepository.findById(userId).ifPresent(user -> {

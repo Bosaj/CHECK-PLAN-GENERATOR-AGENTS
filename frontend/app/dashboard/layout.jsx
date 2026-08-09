@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
@@ -78,15 +79,20 @@ export default function DashboardLayout({ children }) {
     <SidebarProvider>
       <div className="flex h-screen w-full">
                  <Sidebar className="bg-gradient-to-b from-brand-green-light/30 via-brand-light to-sidebar border-r border-brand/20">
-                     <SidebarHeader className="p-4 border-b-2 border-brand/30 flex items-center justify-center bg-gradient-to-r from-brand-light/60 to-brand-green-light/40 shadow-lg min-h-[140px]">
-            <Image
-              src="/CDGCAPITALIMAGE.png"
-              alt="CDG Capital Logo"
-              width={140}
-              height={140}
-              className="rounded-md shadow-2xl drop-shadow-2xl border-2 border-brand/10"
-              priority
-            />
+                     <SidebarHeader className="p-4 border-b-2 border-brand/30 flex items-center justify-center bg-gradient-to-r from-brand-light/60 to-brand-green-light/40 shadow-lg min-h-[112px]">
+            {/* Le logo n'a pas de fond transparent — le traiter comme un badge encadré
+                avec du padding plutôt qu'un rectangle blanc flottant sans marge. */}
+            <div className="rounded-xl bg-white p-2.5 shadow-lg">
+              <Image
+                src="/CDGCAPITALIMAGE.png"
+                alt="CDG Capital Logo"
+                width={96}
+                height={96}
+                style={{ width: "96px", height: "96px" }}
+                className="rounded-md"
+                priority
+              />
+            </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col justify-between h-full">
             <div>
@@ -186,9 +192,15 @@ export default function DashboardLayout({ children }) {
             </motion.div>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 overflow-auto p-6 transition-all duration-300 w-full">
-          <motion.div 
-            className="w-full h-full max-w-7xl mx-auto"
+        <main className="flex-1 overflow-auto transition-all duration-300 w-full">
+          {/* Sans ce bouton, la sidebar (qui passe en tiroir hors-écran sur mobile)
+              n'a aucun moyen d'être ouverte — la navigation était inaccessible sur mobile. */}
+          <div className="flex items-center gap-3 border-b bg-background px-4 py-3 md:hidden">
+            <SidebarTrigger />
+            <span className="font-semibold">CDG Capital</span>
+          </div>
+          <motion.div
+            className="p-6 w-full h-full max-w-7xl mx-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
