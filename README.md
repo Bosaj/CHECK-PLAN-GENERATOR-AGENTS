@@ -1,4 +1,10 @@
-# 🏦 CHECK PLAN GENERATOR AGENTS — CDG Capital
+# CHECK-PLAN-GENERATOR-AGENTS
+
+![CI Pipeline](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/actions/workflows/ci_qa_monitoring.yml/badge.svg)
+[![GitHub Wiki](https://img.shields.io/badge/Documentation-GitHub%20Wiki-blue.svg)](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
+[![Quality Gate](https://img.shields.io/badge/Quality%20Gate-Passed-brightgreen.svg)](docs/MONITORING_AND_QA.md)
+
+---
 
 <div align="center">
 
@@ -140,4 +146,12 @@ This project includes a standardized 4-Pillar Observability and QA framework:
 - **Health Controlling & Evaluation**: Liveness/readiness controllers in `monitoring/health.py` and evaluation harness in `scripts/eval_harness.py`.
 - **QA & Testing**: Automated Pytest/Vitest integration and CI workflows via `.github/workflows/ci_qa_monitoring.yml`.
 
-For complete instructions, architecture details, and commands, see [docs/MONITORING_AND_QA.md](file:///C:\Users\ROG FLOW\Desktop\Projects\Github_Projects\CHECK-PLAN-GENERATOR-AGENTS\docs\MONITORING_AND_QA.md).
+For complete instructions, architecture details, and commands, see [docs/MONITORING_AND_QA.md](docs/MONITORING_AND_QA.md).
+
+---
+
+## 📚 Documentation & GitHub Wiki
+- 📖 **Official Project Wiki**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
+- 🔍 **Architecture & Design**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Architecture-and-Design](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Architecture-and-Design)
+- 🚀 **Getting Started Guide**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Getting-Started](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Getting-Started)
+- 📊 **Monitoring & Observability**: [docs/MONITORING_AND_QA.md](docs/MONITORING_AND_QA.md)
