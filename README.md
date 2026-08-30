@@ -132,3 +132,12 @@ This project is developed under the supervision of **CDG Capital** by a speciali
 
 Ce projet est une propriété exclusive et privée sous la supervision de **CDG Capital**.  
 Tous droits réservés. Consulter le fichier [`LICENSE`](./LICENSE) pour plus de détails.
+
+## 📊 Monitoring, Controlling, Evaluation & QA
+
+This project includes a standardized 4-Pillar Observability and QA framework:
+- **Logs & Prometheus/Grafana Monitoring**: Configured in `monitoring/` with Prometheus scraper configs and Grafana dashboards.
+- **Health Controlling & Evaluation**: Liveness/readiness controllers in `monitoring/health.py` and evaluation harness in `scripts/eval_harness.py`.
+- **QA & Testing**: Automated Pytest/Vitest integration and CI workflows via `.github/workflows/ci_qa_monitoring.yml`.
+
+For complete instructions, architecture details, and commands, see [docs/MONITORING_AND_QA.md](file:///C:\Users\ROG FLOW\Desktop\Projects\Github_Projects\CHECK-PLAN-GENERATOR-AGENTS\docs\MONITORING_AND_QA.md).
