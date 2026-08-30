@@ -94,3 +94,5 @@ Thumbs.db
 .env.production.local
 .wiki-staging
 temp_*
+
+# Environment & Security Exclusions
