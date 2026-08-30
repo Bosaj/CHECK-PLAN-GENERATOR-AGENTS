@@ -86,3 +86,11 @@ scratch/
 .DS_Store
 Thumbs.db
 .antigravity
+
+
+# Local Environment & Staging Security
+.env.development.local
+.env.test.local
+.env.production.local
+.wiki-staging
+temp_*
