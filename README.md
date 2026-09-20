@@ -1,5 +1,8 @@
 # CHECK-PLAN-GENERATOR-AGENTS
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Bosaj/CHECK-PLAN-GENERATOR-AGENTS) [![GitHub release](https://img.shields.io/github/v/release/Bosaj/CHECK-PLAN-GENERATOR-AGENTS?color=blue&label=release)](https://github.com/Bosaj/CHECK-PLAN-GENERATOR-AGENTS/releases) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
+
 ![CI Pipeline](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/actions/workflows/ci_qa_monitoring.yml/badge.svg)
 [![GitHub Wiki](https://img.shields.io/badge/Documentation-GitHub%20Wiki-blue.svg)](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
 [![Quality Gate](https://img.shields.io/badge/Quality%20Gate-Passed-brightgreen.svg)](docs/MONITORING_AND_QA.md)
