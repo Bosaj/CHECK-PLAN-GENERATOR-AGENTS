@@ -12,6 +12,8 @@
 <div align="center">
 
 ![CDG Capital Banner](https://img.shields.io/badge/CDG%20Capital-Financial%20Compliance-003366?style=for-the-badge&logo=bank&logoColor=white)
+![Milestone](https://img.shields.io/badge/Milestone-Projet_de_Fin_d'Ann%C3%A9e_(PFA)-7928CA?style=for-the-badge&logo=mortarboard&logoColor=white)
+![Institution](https://img.shields.io/badge/Institution-ENIAD%20Berkane-FF6B00?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-1.0.0-gold?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Proprietary-red?style=for-the-badge)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge&logo=githubactions)
@@ -19,7 +21,8 @@
 ![Java](https://img.shields.io/badge/java-17%2B-orange?style=for-the-badge&logo=openjdk)
 ![Next.js](https://img.shields.io/badge/next.js-15-black?style=for-the-badge&logo=nextdotjs)
 
-**AI-Driven Automated Control Plan Generation & Verification Platform for Financial Management Regulations**
+**AI-Driven Automated Control Plan Generation & Verification Platform for Financial Management Regulations**  
+*Official **Projet de Fin d'Année (PFA)** • State Engineering Degree in Artificial Intelligence & Digital Systems (ENIAD Berkane) in partnership with **CDG Capital***
 
 [Architecture](#-architecture) • [Features](#-features) • [Installation](#-installation) • [Team](#-team-and-codeowners) • [Contributing](#-contributing)
 
@@ -29,7 +32,7 @@
 
 ## 📌 Executive Summary
 
-**Check Plan Generator Agents** is an enterprise AI platform developed for **CDG Capital**. It automates the extraction, verification, and transformation of complex financial management regulations (*Règlements de Gestion*) into structured compliance control plans exported as Excel spreadsheets.
+**Check Plan Generator Agents** is an enterprise AI compliance platform developed for **CDG Capital** as the official **Projet de Fin d'Année (PFA)** within the **State Engineering Degree in Artificial Intelligence & Digital Systems** at **ENIAD Berkane** (Mohammed First University). It automates the extraction, verification, and transformation of complex financial management regulations (*Règlements de Gestion*) into structured compliance control plans exported as Excel spreadsheets.
 
 The platform utilizes a multi-agent **LangGraph** workflow coupled with OCR engines (**RapidOCR / PaddleOCR**), a **Spring Boot 3** security and API gateway, and a modern **Next.js 15** reactive frontend.
 
