@@ -1,47 +1,31 @@
-# 🤝 Contributing Guidelines — CDG Capital
+# Contributing Guidelines
 
-Thank you for contributing to **Check Plan Generator Agents**. This project adheres to strict engineering guidelines to maintain production readiness, security, and clean architecture.
+Thank you for your interest in contributing to this project!
 
----
+## Code of Conduct
 
-## 👥 Engineering Team & Domain Ownership
+By participating in this project, you agree to abide by the terms of our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-- **Oussama ELHADJI** (`@Bosaj`): AI Lead & LangGraph Architect (`check_planner/agents/`, `check_planner/retriever/`)
-- **Adama COULIBALY** (`@startlingadama`): AI Engineer (`check_planner/regulation_chunker/`, `check_planner/llm/`)
-- **Hamza IDRISSI** (`@IdrHamza`): Full-Stack Engineer (`backend/`, `frontend/`)
-- **Chaymae ADIHAJI** (`@Chaymaadihaji`): Data Engineer (`plans/`, `clients/`, `tests/`)
+## Getting Started
 
----
+1. **Fork the Repository** on GitHub.
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/Bosaj/<repo-name>.git
+   ```
+3. **Create a Feature Branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-## 🌿 Branching Strategy
+## Development Workflow
 
-We follow a domain-separated feature branch workflow:
+- Follow clean code practices, PEP 8 / ESLint formatting guidelines, and include relevant documentation for new features.
+- Ensure all automated tests pass before submitting changes.
+- Write clear, conventional commit messages (`feat: ...`, `fix: ...`, `docs: ...`).
 
-- `main`: Production-ready release branch. All PRs require review and CI check pass.
-- `ai`: Agent development, LangGraph state graph modifications, OCR pipeline updates.
-- `backend`: Java Spring Boot Gateway, Security configurations, MongoDB models.
-- `frontend`: Next.js 15 UI, dashboards, component library.
+## Pull Request Process
 
----
-
-## 📝 Commit Conventions
-
-All commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat(ai): add verifier agent node to state graph`
-- `fix(security): restrict CORS allowed origins to production domain`
-- `fix(backend): correct JWT token expiration check`
-- `docs(readme): add docker compose quick-start instructions`
-- `refactor(chunker): optimize regex regex pattern matching for section extraction`
-
----
-
-## 🧪 Pull Request Checklist
-
-Before submitting a Pull Request:
-1. Ensure no hardcoded secrets or API keys exist in `.env` or codebase.
-2. Run linters:
-   - Python: `ruff check check_planner/`
-   - Frontend: `npm run lint` (inside `frontend/`)
-3. Verify tests pass: `pytest tests/`
-4. Confirm `docker-compose up -d --build` builds cleanly without errors.
+1. Push your changes to your fork.
+2. Open a Pull Request targeting the `main` branch.
+3. Provide a clear description of the problem solved, architectural choices made, and screenshots/logs if applicable.
