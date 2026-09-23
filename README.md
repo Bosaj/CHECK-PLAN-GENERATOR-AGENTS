@@ -3,8 +3,8 @@
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Bosaj/CHECK-PLAN-GENERATOR-AGENTS) [![GitHub release](https://img.shields.io/github/v/release/Bosaj/CHECK-PLAN-GENERATOR-AGENTS?color=blue&label=release)](https://github.com/Bosaj/CHECK-PLAN-GENERATOR-AGENTS/releases) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 
-![CI Pipeline](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/actions/workflows/ci_qa_monitoring.yml/badge.svg)
-[![GitHub Wiki](https://img.shields.io/badge/Documentation-GitHub%20Wiki-blue.svg)](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
+![CI Pipeline](https://github.com/Bosaj/CHECK-PLAN-GENERATOR-AGENTS/actions/workflows/ci_qa_monitoring.yml/badge.svg)
+[![GitHub Wiki](https://img.shields.io/badge/Documentation-GitHub%20Wiki-blue.svg)](#-executive-summary)
 [![Quality Gate](https://img.shields.io/badge/Quality%20Gate-Passed-brightgreen.svg)](docs/MONITORING_AND_QA.md)
 [![Sponsor Bosaj](https://img.shields.io/badge/Sponsor-Bosaj-ea4aaa?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/Bosaj)
 [![Support startlingadama](https://img.shields.io/badge/Support-startlingadama-ea4aaa?style=flat-square&logo=github)](https://github.com/startlingadama)
@@ -94,7 +94,7 @@ graph TD
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS.git
+   git clone https://github.com/Bosaj/CHECK-PLAN-GENERATOR-AGENTS.git
    cd CHECK-PLAN-GENERATOR-AGENTS
    ```
 
@@ -161,7 +161,7 @@ For complete instructions, architecture details, and commands, see [docs/MONITOR
 ---
 
 ## 📚 Documentation & GitHub Wiki
-- 📖 **Official Project Wiki**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
-- 🔍 **Architecture & Design**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Architecture-and-Design](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Architecture-and-Design)
-- 🚀 **Getting Started Guide**: [https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Getting-Started](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki/Getting-Started)
+- 📖 **Official Project Wiki**: [#-executive-summary](#-executive-summary)
+- 🔍 **Architecture & Design**: [docs/MONITORING_AND_QA.md](docs/MONITORING_AND_QA.md)
+- 🚀 **Getting Started Guide**: [#-quick-start-docker-compose](#-quick-start-docker-compose)
 - 📊 **Monitoring & Observability**: [docs/MONITORING_AND_QA.md](docs/MONITORING_AND_QA.md)
