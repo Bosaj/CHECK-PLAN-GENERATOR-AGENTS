@@ -6,6 +6,10 @@
 ![CI Pipeline](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/actions/workflows/ci_qa_monitoring.yml/badge.svg)
 [![GitHub Wiki](https://img.shields.io/badge/Documentation-GitHub%20Wiki-blue.svg)](https://github.com/CDG-CAPITAL-FINANCE/CHECK-PLAN-GENERATOR-AGENTS/wiki)
 [![Quality Gate](https://img.shields.io/badge/Quality%20Gate-Passed-brightgreen.svg)](docs/MONITORING_AND_QA.md)
+[![Sponsor Bosaj](https://img.shields.io/badge/Sponsor-Bosaj-ea4aaa?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/Bosaj)
+[![Support startlingadama](https://img.shields.io/badge/Support-startlingadama-ea4aaa?style=flat-square&logo=github)](https://github.com/startlingadama)
+[![Support IdrHamza](https://img.shields.io/badge/Support-IdrHamza-ea4aaa?style=flat-square&logo=github)](https://github.com/IdrHamza)
+[![Support Chaymaadihaji](https://img.shields.io/badge/Support-Chaymaadihaji-ea4aaa?style=flat-square&logo=github)](https://github.com/Chaymaadihaji)
 
 ---
 
@@ -133,10 +137,10 @@ This project is developed under the supervision of **CDG Capital** by a speciali
 
 | Name | Role | GitHub Handle | Primary Responsibilities |
 |---|---|---|---|
-| **Oussama ELHADJI** | AI Lead & Agent Architect | [`@Bosaj`](https://github.com/Bosaj) | LangGraph Agents, OCR Pipeline, Prompt Engineering |
-| **Adama COULIBALY** | AI Engineer & LLM Specialist | [`@startlingadama`](https://github.com/startlingadama) | LLM Model Integration, Verification Agent, NLP Chunking |
-| **Hamza IDRISSI** | Full-Stack Engineer | [`@IdrHamza`](https://github.com/IdrHamza) | Spring Boot Gateway, Next.js Dashboard, JWT Auth |
-| **Chaymae ADIHAJI** | Data Engineer | [`@Chaymaadihaji`](https://github.com/Chaymaadihaji) | Data Ingestion, Excel Structuring, Pipeline Benchmarks |
+| **Oussama ELHADJI** | AI Lead & Agent Architect | [`@Bosaj`](https://github.com/Bosaj) • [![Sponsor](https://img.shields.io/badge/Sponsor-Bosaj-ea4aaa?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/Bosaj) | LangGraph Agents, OCR Pipeline, Prompt Engineering |
+| **Adama COULIBALY** | AI Engineer & LLM Specialist | [`@startlingadama`](https://github.com/startlingadama) • [![Support](https://img.shields.io/badge/Support-startlingadama-ea4aaa?style=flat-square&logo=github)](https://github.com/startlingadama) | LLM Model Integration, Verification Agent, NLP Chunking |
+| **Hamza IDRISSI** | Full-Stack Engineer | [`@IdrHamza`](https://github.com/IdrHamza) • [![Support](https://img.shields.io/badge/Support-IdrHamza-ea4aaa?style=flat-square&logo=github)](https://github.com/IdrHamza) | Spring Boot Gateway, Next.js Dashboard, JWT Auth |
+| **Chaymae ADIHAJI** | Data Engineer | [`@Chaymaadihaji`](https://github.com/Chaymaadihaji) • [![Support](https://img.shields.io/badge/Support-Chaymaadihaji-ea4aaa?style=flat-square&logo=github)](https://github.com/Chaymaadihaji) | Data Ingestion, Excel Structuring, Pipeline Benchmarks |
 
 ---
 
