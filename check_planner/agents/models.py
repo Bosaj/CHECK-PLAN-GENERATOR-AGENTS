@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field
 
 class AgentState(TypedDict):
     rg_path: str
-    current_page_num: int = 0
+    current_page_num: int
     max_pages: int
-    rg_num: int = 0
+    rg_num: int
     is_verified: bool
     max_rgs: int
     regulation: dict
@@ -67,7 +67,7 @@ class VerifiedRegulation(BaseModel):
 
 class VerifiedAgentState(TypedDict):
     check_path: str
-    current_rg_num: int = 0
+    current_rg_num: int
     max_regs: int
     is_verified: bool
     regulation: dict

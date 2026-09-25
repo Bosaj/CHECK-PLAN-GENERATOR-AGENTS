@@ -3,7 +3,7 @@ from .regulation_extractor import RegulationExtractor
 
 # Fonction de commodité pour rétrocompatibilité
 # Fonction principale pour utilisation simple
-def chunk_page_regulations(texte: str, hierarchie=False) -> list[dict]:
+def chunk_page_regulations(texte: str, hierarchie: bool = False) -> list[dict] | tuple[list[dict], dict]:
     """
     Fonction d'entrée principale pour analyser un texte.
 

@@ -12,11 +12,16 @@ async def retrieve_regulation(query_text: str, bi_top_k: int = 20, cross_top_k: 
 
     results = await asyncio.to_thread(collection.query, query_embeddings=query_embedding.tolist(), n_results=bi_top_k)
 
-    pairs = [(query_text, doc) for doc in results["documents"][0]]
+    docs = results.get("documents") or [[]]
+    metas = results.get("metadatas") or [[]]
+    first_docs = docs[0] if docs else []
+    first_metas = metas[0] if metas else []
+
+    pairs = [(query_text, doc) for doc in first_docs]
     scores = await asyncio.to_thread(cross_encoder.predict, pairs)
 
     reranked = sorted(
-        zip(results["documents"][0], results["metadatas"][0], scores, strict=False),
+        zip(first_docs, first_metas, scores, strict=False),
         key=lambda x: x[2],
         reverse=True,
     )

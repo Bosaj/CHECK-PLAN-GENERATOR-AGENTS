@@ -51,6 +51,10 @@ app.add_middleware(
 app.include_router(router)
 
 if __name__ == "__main__":
+    import os
+
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8057, reload=True)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8057"))
+    uvicorn.run(app, host=host, port=port, reload=True)

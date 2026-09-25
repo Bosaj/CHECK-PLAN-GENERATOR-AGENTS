@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from typing import Any
 
 import backoff
 import pandas as pd
@@ -63,8 +64,8 @@ class CheckPlanerAgent:
         self.llm_ver = llm.with_structured_output(VerifiedRegulation)
         self.llm = llm
         self.llm_chunk = llm.with_structured_output(PageChunked)
-        self.data_pages = []
-        self.regulations = []
+        self.data_pages: list[Any] = []
+        self.regulations: list[Any] = []
         self.rg_name = ""
 
         # build graph
@@ -153,17 +154,18 @@ class CheckPlanerAgent:
                     else:
                         img = Image.frombytes(
                             "RGB",
-                            [page["content"].width, page["content"].height],
+                            (page["content"].width, page["content"].height),
                             page["content"].samples,
                         )
                         text = perform_ocr(img)
                         prompt = extract_title_prompt.format(text=text)
                         rg = structured_rg_name.invoke(prompt)
 
-                    if not rg.rg_name:
+                    rg_val = getattr(rg, "rg_name", None) or (rg.get("rg_name") if isinstance(rg, dict) else None)
+                    if not rg_val:
                         raise ValueError("Le nom juridique du reglement de gestion est vide")
-                    logger.info("RG NAME -%s", rg.rg_name)
-                    self.rg_name = rg.rg_name
+                    logger.info("RG NAME -%s", rg_val)
+                    self.rg_name = str(rg_val)
 
             except Exception:
                 logger.exception("Erreur extraction du nom rg")
@@ -264,7 +266,7 @@ class CheckPlanerAgent:
             page = self.data_pages[state["current_page_num"]]
             img = Image.frombytes(
                 "RGB",
-                [page["content"].width, page["content"].height],
+                (page["content"].width, page["content"].height),
                 page["content"].samples,
             )
             text = perform_ocr(img)
@@ -299,11 +301,11 @@ class CheckPlanerAgent:
 
             if not isinstance(chunked, PageChunked):
                 raise TypeError("Erreur de type pour le chunk")
-            regulations = chunked.sections
-            regulations = [section.model_dump() for section in regulations]
+            regulations: list[dict[str, Any]] = [section.model_dump() for section in chunked.sections]
             self.llm_params["chunk_type"] = "llm"
         except Exception:  # noqa: BLE001
-            regulations = chunk_page_regulations(texte=text)
+            raw_regs = chunk_page_regulations(texte=text)
+            regulations = raw_regs[0] if isinstance(raw_regs, tuple) else raw_regs
             self.llm_params["chunk_type"] = "nlp"
 
         if not regulations and text.strip():

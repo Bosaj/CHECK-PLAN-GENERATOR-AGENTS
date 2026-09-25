@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 import backoff
 import pandas as pd
@@ -25,7 +26,7 @@ class VerifierAgent:
         self.llm_params = {"iteration": 0, "type": "groq", "max": 20, "call": "verify"}
         self.llm_gen = llm.with_structured_output(RegulationControl)
         self.controle_llm = llm.with_structured_output(LegislativeReference)
-        self.regulations = []
+        self.regulations: list[dict[str, Any]] = []
 
         # build graph
         self.graph = self._build_graph()

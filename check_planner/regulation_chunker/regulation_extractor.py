@@ -1,10 +1,11 @@
 import re
+from typing import Any
 
 # spaCy optionnel
 try:
     import spacy
 
-    nlp = spacy.load("fr_core_news_sm")
+    nlp: Any = spacy.load("fr_core_news_sm")
 except Exception:  # noqa: BLE001
     nlp = None
 
@@ -293,7 +294,7 @@ class RegulationExtractor:
           ]
         }
         """
-        root = {"children": []}
+        root: dict[str, Any] = {"children": []}
         stack = [root]  # pile de niveaux
 
         for s in sections:
