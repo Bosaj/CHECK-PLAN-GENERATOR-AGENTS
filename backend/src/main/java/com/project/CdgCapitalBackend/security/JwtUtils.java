@@ -27,12 +27,12 @@ public class JwtUtils {
         if (token == null || token.isBlank()) {
             return null;
         }
-        return extractClaim(token, Claims::getSubject);
+        return extractClaim(token, claims -> claims != null ? claims.getSubject() : null);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
-        if (claimsResolver == null) {
+        if (claimsResolver == null || claims == null) {
             return null;
         }
         return claimsResolver.apply(claims);
@@ -73,7 +73,7 @@ public class JwtUtils {
     }
 
     private Instant extractExpiration(String token) {
-        java.util.Date expirationDate = extractClaim(token, Claims::getExpiration);
+        java.util.Date expirationDate = extractClaim(token, claims -> claims != null ? claims.getExpiration() : null);
         return expirationDate != null ? expirationDate.toInstant() : null;
     }
 

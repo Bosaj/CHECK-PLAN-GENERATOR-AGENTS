@@ -1,7 +1,9 @@
 """
 Unit tests for pdf_splitter and OCR integration functions.
 """
+
 from PIL import Image
+
 from check_planner.agents.plan_generator_agent.agent import perform_ocr
 from check_planner.pdf_splitter.splitter import PDFSplitter
 
@@ -25,4 +27,3 @@ def test_pdf_splitter_heuristics():
         {"x0": 150, "x1": 170, "texte": "Col3"},
     ]
     assert splitter.detecter_tableau(table_line, [], 0) is True
-

@@ -23,16 +23,16 @@ from checkplan_client import SDK
 with SDK(
     server_url="https://api.example.com",
 ) as sdk:
-
-    res = sdk.generate(request={
-        "reglements": [],
-    })
+    res = sdk.generate(
+        request={
+            "reglements": [],
+        }
+    )
 
     assert res is not None
 
     # Handle response
     print(res)
-
 ```
 
 ### Parameters
@@ -67,14 +67,12 @@ from checkplan_client import SDK
 with SDK(
     server_url="https://api.example.com",
 ) as sdk:
-
     res = sdk.hello()
 
     assert res is not None
 
     # Handle response
     print(res)
-
 ```
 
 ### Parameters

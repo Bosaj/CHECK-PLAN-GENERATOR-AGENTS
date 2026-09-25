@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from .regulation_extractor import RegulationExtractor
 
 
@@ -23,4 +21,4 @@ def chunk_page_regulations(texte: str, hierarchie=False) -> list[dict]:
     return sections
 
 
-__ALL__ = ["chunk_page_regulations", "RegulationExtractor"]
+__all__ = ["RegulationExtractor", "chunk_page_regulations"]

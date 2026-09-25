@@ -7,10 +7,11 @@ from checkplan_client import SDK
 with SDK(
     server_url="https://api.example.com",
 ) as sdk:
-
-    res = sdk.generate(request={
-        "reglements": [],
-    })
+    res = sdk.generate(
+        request={
+            "reglements": [],
+        }
+    )
 
     assert res is not None
 
@@ -26,20 +27,23 @@ The same SDK client can also be used to make asynchronous requests by importing 
 import asyncio
 from checkplan_client import SDK
 
+
 async def main():
 
     async with SDK(
         server_url="https://api.example.com",
     ) as sdk:
-
-        res = await sdk.generate_async(request={
-            "reglements": [],
-        })
+        res = await sdk.generate_async(
+            request={
+                "reglements": [],
+            }
+        )
 
         assert res is not None
 
         # Handle response
         print(res)
+
 
 asyncio.run(main())
 ```

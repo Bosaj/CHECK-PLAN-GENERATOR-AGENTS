@@ -10,6 +10,7 @@ gemini_models = [
     "gemini-1.5-flash",
 ]
 
+
 def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):
     import os
 
@@ -18,9 +19,7 @@ def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):
     load_dotenv(env_path, override=False)
     dotenv_dict = dotenv_values(env_path) if os.path.exists(env_path) else {}
     api_keys = [
-        value
-        for key, value in dotenv_dict.items()
-        if key.startswith(("GOOGLE_API_KEY", "GEMINI_API_KEY")) and value
+        value for key, value in dotenv_dict.items() if key.startswith(("GOOGLE_API_KEY", "GEMINI_API_KEY")) and value
     ]
 
     if not api_keys and (os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")):
@@ -46,7 +45,7 @@ def get_llm_gemini(env_path=".env", models=gemini_models, temperature=0.0):
             api_key=selected_key if selected_key else None,
         )
     except Exception:
-        logging.exception("Erreur lors de l'initialisation de Gemini LLM")
+        logger.exception("Erreur lors de l'initialisation de Gemini LLM")
         return None
 
 

@@ -3,7 +3,6 @@
 import asyncio
 import random
 import time
-from typing import List
 
 import httpx
 
@@ -32,9 +31,7 @@ class RetryConfig:
     backoff: BackoffStrategy
     retry_connection_errors: bool
 
-    def __init__(
-        self, strategy: str, backoff: BackoffStrategy, retry_connection_errors: bool
-    ):
+    def __init__(self, strategy: str, backoff: BackoffStrategy, retry_connection_errors: bool):
         self.strategy = strategy
         self.backoff = backoff
         self.retry_connection_errors = retry_connection_errors
@@ -42,9 +39,9 @@ class RetryConfig:
 
 class Retries:
     config: RetryConfig
-    status_codes: List[str]
+    status_codes: list[str]
 
-    def __init__(self, config: RetryConfig, status_codes: List[str]):
+    def __init__(self, config: RetryConfig, status_codes: list[str]):
         self.config = config
         self.status_codes = status_codes
 

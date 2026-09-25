@@ -2,25 +2,24 @@
 
 from __future__ import annotations
 
-from typing import List, Union
-
-from checkplan_client.types import BaseModel
 from typing_extensions import TypeAliasType, TypedDict
 
-LocTypedDict = TypeAliasType("LocTypedDict", Union[str, int])
+from checkplan_client.types import BaseModel
+
+LocTypedDict = TypeAliasType("LocTypedDict", str | int)
 
 
-Loc = TypeAliasType("Loc", Union[str, int])
+Loc = TypeAliasType("Loc", str | int)
 
 
 class ValidationErrorTypedDict(TypedDict):
-    loc: List[LocTypedDict]
+    loc: list[LocTypedDict]
     msg: str
     type: str
 
 
 class ValidationError(BaseModel):
-    loc: List[Loc]
+    loc: list[Loc]
 
     msg: str
 

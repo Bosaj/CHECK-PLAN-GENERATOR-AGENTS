@@ -2,7 +2,7 @@
 try:
     import sys
 
-    import pysqlite3
+    import pysqlite3  # noqa: F401
 
     sys.modules["sqlite3"] = sys.modules["pysqlite3"]
 except ImportError:

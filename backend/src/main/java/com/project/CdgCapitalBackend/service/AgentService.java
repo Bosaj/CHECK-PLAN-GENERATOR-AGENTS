@@ -67,16 +67,18 @@ public class AgentService {
         if (id == null || agentRequest == null) {
             return Optional.empty();
         }
-        return agentRepository.findById(id)
-                .map(agent -> {
-                    if (agentRequest.getName() != null) {
-                        agent.setName(agentRequest.getName());
-                    }
-                    if (agentRequest.getRole() != null) {
-                        agent.setRole(agentRequest.getRole());
-                    }
-                    return agentRepository.save(agent);
-                });
+        Optional<Agent> existing = agentRepository.findById(id);
+        if (existing.isEmpty()) {
+            return Optional.empty();
+        }
+        Agent agent = existing.get();
+        if (agentRequest.getName() != null) {
+            agent.setName(agentRequest.getName());
+        }
+        if (agentRequest.getRole() != null) {
+            agent.setRole(agentRequest.getRole());
+        }
+        return Optional.of(agentRepository.save(agent));
     }
 
     private static final String STATUS_EN_COURS = "EN_COURS";

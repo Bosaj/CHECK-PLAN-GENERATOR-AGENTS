@@ -51,9 +51,7 @@ class RegulationControl(BaseModel):
         description="Documents ou références explicitement requis par la réglementation. "
         "Si le texte mentionne un document, il doit être repris ici.",
     )
-    detail_explication: str = Field(
-        ..., description="Explications détaillées pour guider le contrôleur pas à pas."
-    )
+    detail_explication: str = Field(..., description="Explications détaillées pour guider le contrôleur pas à pas.")
     points_specifiques: str = Field(
         ...,
         description="Points spécifiques et précis à vérifier, extraits ou déduits du texte.",
@@ -79,9 +77,7 @@ class VerifiedAgentState(TypedDict):
 class ExtractRGName(BaseModel):
     rg_name: str | None = Field(
         ...,
-        description=(
-            "The official legal name of the management regulation as displayed in the page title. "
-        ),
+        description=("The official legal name of the management regulation as displayed in the page title. "),
     )
 
 
@@ -91,9 +87,7 @@ class Section(BaseModel):
 
 
 class PageChunked(BaseModel):
-    sections: list[Section] = Field(
-        ..., description="Liste des sections extraites de la page"
-    )
+    sections: list[Section] = Field(..., description="Liste des sections extraites de la page")
 
 
 class LegislativeReference(BaseModel):

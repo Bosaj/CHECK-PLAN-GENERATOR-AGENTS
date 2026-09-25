@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from checkplan_client.types import BaseModel
 from typing_extensions import TypedDict
+
+from checkplan_client.types import BaseModel
 
 
 class AgentResultTypedDict(TypedDict):

@@ -18,7 +18,7 @@ try:
             )
 
         print(res)
-except Exception as e:
+except Exception:
     traceback.print_exc()
 
 

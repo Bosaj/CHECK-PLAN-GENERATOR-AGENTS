@@ -1,5 +1,5 @@
 prompt_verified_rg = """
-You are an assistant who receives a text related to fund or FPCT management.  
+You are an assistant who receives a text related to fund or FPCT management.
 Your task is to determine strictly whether this text corresponds to a control item that a **depositaire** must verify.
 
 Text to evaluate:
@@ -10,9 +10,9 @@ Respond ONLY in JSON with:
 - "is_verified": false otherwise
 
 Guidelines:
-1. Consider depositaire controls such as: limits on investment, asset allocation, compliance with fund rules, cash flow verification, regulatory compliance.  
-2. Do NOT infer beyond what is explicitly a depositaire control.  
-3. Treat this as extremely sensitive—accuracy is critical.  
+1. Consider depositaire controls such as: limits on investment, asset allocation, compliance with fund rules, cash flow verification, regulatory compliance.
+2. Do NOT infer beyond what is explicitly a depositaire control.
+3. Treat this as extremely sensitive—accuracy is critical.
 4. Respond strictly with JSON, no explanation.
 """
 
@@ -20,7 +20,7 @@ Guidelines:
 prompt_system = """
 You are an expert in regulatory compliance and internal control within the financial sector.
 
-Your task:  
+Your task:
 Using the regulation text provided below, analyze its content and produce all the necessary information to create a regulatory control sheet.
 
 Regulation:
@@ -39,7 +39,7 @@ Instructions:
 """
 
 extract_title_prompt = """
-You are given the content of page 1 of a document. 
+You are given the content of page 1 of a document.
 Extract the *legal name of the management regulation or name of this document* if it appears as the title (not a law).
 if it's long, provide significative part of it or an acronym, sigle.
 My grandMother's life depends on your answer, so be very careful.
@@ -65,7 +65,6 @@ Ta mission :
 4. Fournir ta réponse **uniquement** sous forme JSON valide respectant le
    schéma Pydantic suivant :
     "reference_text": "TITRE et/ou ARTICLE – contenu complet de la disposition légale trouvée"
-   
 
 Contraintes :
 - Pas d’explication en dehors du JSON.

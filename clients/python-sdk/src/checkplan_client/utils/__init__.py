@@ -10,77 +10,99 @@ if TYPE_CHECKING:
     from .enums import OpenEnumMeta
     from .headers import get_headers, get_response_headers
     from .logger import Logger, get_body_content, get_default_logger
-    from .metadata import (FieldMetadata, FormMetadata, HeaderMetadata,
-                           MultipartFormMetadata, PathParamMetadata,
-                           QueryParamMetadata, RequestMetadata,
-                           SecurityMetadata, find_metadata)
+    from .metadata import (
+        FieldMetadata,
+        FormMetadata,
+        HeaderMetadata,
+        MultipartFormMetadata,
+        PathParamMetadata,
+        QueryParamMetadata,
+        RequestMetadata,
+        SecurityMetadata,
+        find_metadata,
+    )
     from .queryparams import get_query_params
     from .requestbodies import SerializedRequestBody, serialize_request_body
-    from .retries import (BackoffStrategy, Retries, RetryConfig, retry,
-                          retry_async)
+    from .retries import BackoffStrategy, Retries, RetryConfig, retry, retry_async
     from .security import get_security
-    from .serializers import (get_pydantic_model, marshal_json,
-                              serialize_decimal, serialize_float,
-                              serialize_int, stream_to_bytes,
-                              stream_to_bytes_async, stream_to_text,
-                              stream_to_text_async, unmarshal, unmarshal_json,
-                              validate_const, validate_decimal, validate_float,
-                              validate_int, validate_open_enum)
+    from .serializers import (
+        get_pydantic_model,
+        marshal_json,
+        serialize_decimal,
+        serialize_float,
+        serialize_int,
+        stream_to_bytes,
+        stream_to_bytes_async,
+        stream_to_text,
+        stream_to_text_async,
+        unmarshal,
+        unmarshal_json,
+        validate_const,
+        validate_decimal,
+        validate_float,
+        validate_int,
+        validate_open_enum,
+    )
     from .url import generate_url, remove_suffix, template_url
-    from .values import (cast_partial, get_global_from_env, match_content_type,
-                         match_response, match_status_codes)
+    from .values import (
+        cast_partial,
+        get_global_from_env,
+        match_content_type,
+        match_response,
+        match_status_codes,
+    )
 
 __all__ = [
     "BackoffStrategy",
     "FieldMetadata",
-    "find_metadata",
     "FormMetadata",
+    "HeaderMetadata",
+    "Logger",
+    "MultipartFormMetadata",
+    "OpenEnumMeta",
+    "PathParamMetadata",
+    "QueryParamMetadata",
+    "RequestMetadata",
+    "Retries",
+    "RetryConfig",
+    "SecurityMetadata",
+    "SerializedRequestBody",
+    "cast_partial",
+    "find_metadata",
     "generate_url",
     "get_body_content",
     "get_default_logger",
     "get_discriminator",
-    "parse_datetime",
     "get_global_from_env",
     "get_headers",
     "get_pydantic_model",
     "get_query_params",
     "get_response_headers",
     "get_security",
-    "HeaderMetadata",
-    "Logger",
     "marshal_json",
     "match_content_type",
-    "match_status_codes",
     "match_response",
-    "MultipartFormMetadata",
-    "OpenEnumMeta",
-    "PathParamMetadata",
-    "QueryParamMetadata",
+    "match_status_codes",
+    "parse_datetime",
     "remove_suffix",
-    "Retries",
     "retry",
     "retry_async",
-    "RetryConfig",
-    "RequestMetadata",
-    "SecurityMetadata",
     "serialize_decimal",
     "serialize_float",
     "serialize_int",
     "serialize_request_body",
-    "SerializedRequestBody",
-    "stream_to_text",
-    "stream_to_text_async",
     "stream_to_bytes",
     "stream_to_bytes_async",
+    "stream_to_text",
+    "stream_to_text_async",
     "template_url",
     "unmarshal",
     "unmarshal_json",
-    "validate_decimal",
     "validate_const",
+    "validate_decimal",
     "validate_float",
     "validate_int",
     "validate_open_enum",
-    "cast_partial",
 ]
 
 _dynamic_imports: dict[str, str] = {
@@ -140,22 +162,16 @@ _dynamic_imports: dict[str, str] = {
 def __getattr__(attr_name: str) -> object:
     module_name = _dynamic_imports.get(attr_name)
     if module_name is None:
-        raise AttributeError(
-            f"no {attr_name} found in _dynamic_imports, module name -> {__name__} "
-        )
+        raise AttributeError(f"no {attr_name} found in _dynamic_imports, module name -> {__name__} ")
 
     try:
         module = import_module(module_name, __package__)
         result = getattr(module, attr_name)
         return result
     except ImportError as e:
-        raise ImportError(
-            f"Failed to import {attr_name} from {module_name}: {e}"
-        ) from e
+        raise ImportError(f"Failed to import {attr_name} from {module_name}: {e}") from e
     except AttributeError as e:
-        raise AttributeError(
-            f"Failed to get {attr_name} from {module_name}: {e}"
-        ) from e
+        raise AttributeError(f"Failed to get {attr_name} from {module_name}: {e}") from e
 
 
 def __dir__():

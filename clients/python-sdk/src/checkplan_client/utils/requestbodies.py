@@ -3,7 +3,7 @@
 import io
 import re
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from .forms import serialize_form_data, serialize_multipart_form
 from .serializers import marshal_json
@@ -19,10 +19,10 @@ SERIALIZATION_METHOD_TO_CONTENT_TYPE = {
 
 @dataclass
 class SerializedRequestBody:
-    media_type: Optional[str] = None
-    content: Optional[Any] = None
-    data: Optional[Any] = None
-    files: Optional[Any] = None
+    media_type: str | None = None
+    content: Any | None = None
+    data: Any | None = None
+    files: Any | None = None
 
 
 def serialize_request_body(
@@ -31,10 +31,9 @@ def serialize_request_body(
     optional: bool,
     serialization_method: str,
     request_body_type,
-) -> Optional[SerializedRequestBody]:
-    if request_body is None:
-        if not nullable and optional:
-            return None
+) -> SerializedRequestBody | None:
+    if request_body is None and not nullable and optional:
+        return None
 
     media_type = SERIALIZATION_METHOD_TO_CONTENT_TYPE[serialization_method]
 
@@ -50,13 +49,9 @@ def serialize_request_body(
         ) = serialize_multipart_form(media_type, request_body)
     elif re.match(r"application\/x-www-form-urlencoded.*", media_type) is not None:
         serialized_request_body.data = serialize_form_data(request_body)
-    elif isinstance(request_body, (bytes, bytearray, io.BytesIO, io.BufferedReader)):
-        serialized_request_body.content = request_body
-    elif isinstance(request_body, str):
+    elif isinstance(request_body, (bytes, bytearray, io.BytesIO, io.BufferedReader, str)):
         serialized_request_body.content = request_body
     else:
-        raise TypeError(
-            f"invalid request body type {type(request_body)} for mediaType {media_type}"
-        )
+        raise TypeError(f"invalid request body type {type(request_body)} for mediaType {media_type}")
 
     return serialized_request_body

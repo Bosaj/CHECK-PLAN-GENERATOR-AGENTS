@@ -34,7 +34,8 @@ public class ReglementDeGestionService {
             throw new IllegalArgumentException("Le fichier PDF est requis");
         }
         String contentType = pdf.getContentType();
-        String original = pdf.getOriginalFilename() != null ? pdf.getOriginalFilename().toLowerCase() : "";
+        String rawFilename = pdf.getOriginalFilename();
+        String original = rawFilename != null ? rawFilename.toLowerCase() : "";
         boolean looksPdf = (contentType != null && contentType.equalsIgnoreCase("application/pdf")) || original.endsWith(".pdf");
         if (!looksPdf) {
             throw new IllegalArgumentException("Le fichier doit être un PDF");
@@ -43,16 +44,14 @@ public class ReglementDeGestionService {
         Agent agent = agentRepo.findById(agentId)
                 .orElseThrow(() -> new NoSuchElementException("Agent introuvable: " + agentId));
 
-        if (userId != null && !userId.isBlank()) {
-            if (agent.getUserId() == null || !Objects.equals(agent.getUserId(), userId)) {
-                throw new IllegalArgumentException("L'agent ne correspond pas au propriétaire (userId) fourni");
-            }
+        if (userId != null && !userId.isBlank() && (agent.getUserId() == null || !Objects.equals(agent.getUserId(), userId))) {
+            throw new IllegalArgumentException("L'agent ne correspond pas au propriétaire (userId) fourni");
         }
 
         ReglementDeGestion reg = new ReglementDeGestion();
         reg.setAgentId(agentId);
         reg.setUserId(userId);
-        reg.setFileName(pdf.getOriginalFilename());
+        reg.setFileName(rawFilename);
         reg.setContentType(contentType != null ? contentType : "application/pdf");
         reg.setFileSize(pdf.getSize());
         try {

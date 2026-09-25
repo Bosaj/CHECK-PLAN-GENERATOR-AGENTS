@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 import httpx
+
 from checkplan_client.errors import SDKBaseError
 from checkplan_client.models import validationerror as models_validationerror
 from checkplan_client.types import BaseModel
 
 
 class HTTPValidationErrorData(BaseModel):
-    detail: Optional[List[models_validationerror.ValidationError]] = None
+    detail: list[models_validationerror.ValidationError] | None = None
 
 
 class HTTPValidationError(SDKBaseError):
@@ -21,7 +20,7 @@ class HTTPValidationError(SDKBaseError):
         self,
         data: HTTPValidationErrorData,
         raw_response: httpx.Response,
-        body: Optional[str] = None,
+        body: str | None = None,
     ):
         message = body or raw_response.text
         super().__init__(message, raw_response, body)

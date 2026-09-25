@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class PDFSplitter:
-
     def __init__(self):
         pass
 
@@ -33,7 +32,6 @@ class PDFSplitter:
                 text = page.get_text().strip()
 
                 if text:
-
                     # Extraire les mots avec leurs positions
                     mots = page.get_text("words")
 
@@ -57,14 +55,10 @@ class PDFSplitter:
                     # Reconstruction du texte en respectant les tableaux
                     texte_page = self.reconstruire_texte_avec_tableaux(mots_info)
 
-                    data_pages.append(
-                        {"type": "txt", "content": texte_page, "number": num_page + 1}
-                    )
+                    data_pages.append({"type": "txt", "content": texte_page, "number": num_page + 1})
                 else:
                     pixmap = page.get_pixmap()
-                    data_pages.append(
-                        {"type": "image", "content": pixmap, "number": num_page + 1}
-                    )
+                    data_pages.append({"type": "image", "content": pixmap, "number": num_page + 1})
 
             # Fermer le document
             doc.close()
@@ -74,7 +68,7 @@ class PDFSplitter:
             logger.error(f"Erreur : fichier PDF introuvable à {pdf_path}")
             return data_pages
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Une erreur est survenue : {e}")
             return data_pages
 
@@ -149,10 +143,7 @@ class PDFSplitter:
 
         # Si les espaces sont relativement importants (> 20 pixels), c'est probablement un tableau
         espaces_importants = [e for e in espaces if e > 20]
-        if len(espaces_importants) >= 2:
-            return True
-
-        return False
+        return len(espaces_importants) >= 2
 
     def reconstruire_ligne_tableau(self, ligne):
         """

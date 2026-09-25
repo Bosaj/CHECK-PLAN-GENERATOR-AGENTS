@@ -3,43 +3,40 @@
 from __future__ import annotations
 
 import io
-from typing import IO, List, Optional, Union
+from typing import IO, Annotated, NotRequired
 
 import pydantic
+from typing_extensions import TypedDict
+
 from checkplan_client.types import BaseModel
 from checkplan_client.utils import FieldMetadata, MultipartFormMetadata
-from typing_extensions import Annotated, NotRequired, TypedDict
 
 
 class ReglementsTypedDict(TypedDict):
-    content: Union[bytes, IO[bytes], io.BufferedReader]
+    content: bytes | IO[bytes] | io.BufferedReader
     file_name: str
     content_type: NotRequired[str]
 
 
 class Reglements(BaseModel):
     content: Annotated[
-        Union[bytes, IO[bytes], io.BufferedReader],
+        bytes | IO[bytes] | io.BufferedReader,
         pydantic.Field(alias=""),
         FieldMetadata(multipart=MultipartFormMetadata(content=True)),
     ]
 
-    file_name: Annotated[
-        str, pydantic.Field(alias="fileName"), FieldMetadata(multipart=True)
-    ]
+    file_name: Annotated[str, pydantic.Field(alias="fileName"), FieldMetadata(multipart=True)]
 
     content_type: Annotated[
-        Optional[str],
+        str | None,
         pydantic.Field(alias="Content-Type"),
         FieldMetadata(multipart=True),
     ] = None
 
 
 class BodyCheckPlanGeneratorGeneratePostTypedDict(TypedDict):
-    reglements: List[ReglementsTypedDict]
+    reglements: list[ReglementsTypedDict]
 
 
 class BodyCheckPlanGeneratorGeneratePost(BaseModel):
-    reglements: Annotated[
-        List[Reglements], FieldMetadata(multipart=MultipartFormMetadata(file=True))
-    ]
+    reglements: Annotated[list[Reglements], FieldMetadata(multipart=MultipartFormMetadata(file=True))]

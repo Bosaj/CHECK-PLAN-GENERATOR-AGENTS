@@ -24,7 +24,7 @@ class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
             content_length = request.headers.get("content-length")
             if content_length and int(content_length) > MAX_UPLOAD_BYTES:
                 return Response(
-                    content=f"Fichier trop volumineux (max {MAX_UPLOAD_BYTES // (1024*1024)} MB).",
+                    content=f"Fichier trop volumineux (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB).",
                     status_code=413,
                 )
         return await call_next(request)

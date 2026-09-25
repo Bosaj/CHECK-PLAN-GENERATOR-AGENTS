@@ -1,6 +1,7 @@
 """
 Unit tests for check_planner Pydantic models and AgentState schema.
 """
+
 from check_planner.agents.models import (
     AgentState,
     ExtractRGName,
@@ -63,7 +64,7 @@ def test_section_and_page_chunked_model():
     sec1 = Section(title="Section 1", content="Contenu de la section 1")
     sec2 = Section(title="Section 2", content="Contenu de la section 2")
     chunked = PageChunked(sections=[sec1, sec2])
-    
+
     assert len(chunked.sections) == 2
     assert chunked.sections[0].title == "Section 1"
     assert chunked.sections[1].content == "Contenu de la section 2"

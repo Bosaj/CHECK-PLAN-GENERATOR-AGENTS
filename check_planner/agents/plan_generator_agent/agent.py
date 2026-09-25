@@ -6,9 +6,6 @@ import backoff
 import pandas as pd
 import pytesseract
 from google.api_core.exceptions import ResourceExhausted
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
@@ -30,27 +27,30 @@ from check_planner.llm import get_llm_gemini, get_llm_groq, llm_groq
 from check_planner.pdf_splitter import split_pdf
 from check_planner.regulation_chunker import chunk_page_regulations
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Constant for the repeated Excel column header
 COL_CONTROLE = "N\u00b0 de Contr\u00f4le"
+
 
 def perform_ocr(img: Image.Image) -> str:
     """Perform OCR using RapidOCR (PaddleOCR ONNX) with Tesseract fallback."""
     try:
         import numpy as np
         from rapidocr_onnxruntime import RapidOCR
+
         engine = RapidOCR()
         img_np = np.array(img)
         result, _ = engine(img_np)
         if result:
             return "\n".join([line[1] for line in result])
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"RapidOCR failed, using Tesseract fallback: {e}")
     return pytesseract.image_to_string(img)
 
 
-
 class CheckPlanerAgent:
-
     def __init__(self, llm: BaseChatModel = llm_groq):
         self.llm_params = {
             "iteration": 0,
@@ -161,17 +161,13 @@ class CheckPlanerAgent:
                         rg = structured_rg_name.invoke(prompt)
 
                     if not rg.rg_name:
-                        raise ValueError(
-                            "Le nom juridique du reglement de gestion est vide"
-                        )
+                        raise ValueError("Le nom juridique du reglement de gestion est vide")
                     logger.info("RG NAME -%s", rg.rg_name)
                     self.rg_name = rg.rg_name
 
             except Exception:
                 logger.exception("Erreur extraction du nom rg")
-                self.rg_name = os.path.basename(state.get("rg_path")).replace(
-                    ".pdf", ""
-                )
+                self.rg_name = os.path.basename(state.get("rg_path")).replace(".pdf", "")
 
             self.data_pages = pages_data
             max_pages = min(len(pages_data), 30)
@@ -184,7 +180,6 @@ class CheckPlanerAgent:
 
     async def _verification_chunk_reg_node(self, state: AgentState):
         if self.regulations:
-
             text = self.regulations[state["rg_num"]]
 
             full_message = prompt_verified_rg.format(text=text)
@@ -194,8 +189,8 @@ class CheckPlanerAgent:
             is_v = True
             if isinstance(verified, VerifiedRegulation):
                 is_v = verified.is_verified
-            elif isinstance(verified, dict) and 'is_verified' in verified:
-                is_v = bool(verified['is_verified'])
+            elif isinstance(verified, dict) and "is_verified" in verified:
+                is_v = bool(verified["is_verified"])
 
             return {
                 **state,
@@ -220,15 +215,13 @@ class CheckPlanerAgent:
 
             if self.llm_params["chunk_type"] == "nlp":
                 text = (
-                    f"({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0)-1].get('number', '?')}))\n"
+                    f"({self.rg_name} (page {self.data_pages[state.get('current_page_num', 0) - 1].get('number', '?')}))\n"
                     f"{regulation_text.get('titre', '')}\n"
                     f"{regulation_text.get('contenu', '')}"
                 )
             else:
                 text = (
-                    f" RG - ({self.rg_name})\n"
-                    f"{regulation_text.get('title', '')}\n"
-                    f"{regulation_text.get('content', '')}"
+                    f" RG - ({self.rg_name})\n{regulation_text.get('title', '')}\n{regulation_text.get('content', '')}"
                 )
 
             full_message = prompt_system.format(regulation=text)
@@ -237,9 +230,7 @@ class CheckPlanerAgent:
 
             regulation = regulation.model_dump()
             regulation = {
-                key: (
-                    value.replace("(inferred)", "") if isinstance(value, str) else value
-                )
+                key: (value.replace("(inferred)", "") if isinstance(value, str) else value)
                 for key, value in regulation.items()
             }
             state["regulation"] = regulation
@@ -285,15 +276,13 @@ class CheckPlanerAgent:
             logger.error("Error: Tesseract is not installed or not in your PATH.")
             logger.error("Please install Tesseract OCR engine.")
 
-            self.data_pages[state["current_page_num"]][
-                "content"
-            ] = f"Error: Tesseract not found for page {page['number']}"
+            self.data_pages[state["current_page_num"]]["content"] = (
+                f"Error: Tesseract not found for page {page['number']}"
+            )
             return state
         except Exception as ex:
-            logger.exception("An error occurred during OCR for page %s", page['number'])
-            self.data_pages[state["current_page_num"]][
-                "content"
-            ] = f"Error during OCR for page {page['number']}: {ex}"
+            logger.exception("An error occurred during OCR for page %s", page["number"])
+            self.data_pages[state["current_page_num"]]["content"] = f"Error during OCR for page {page['number']}: {ex}"
 
             return state
 
@@ -309,14 +298,14 @@ class CheckPlanerAgent:
             chunked = await self._safe_invoke([HumanMessage(content=text)])
 
             if not isinstance(chunked, PageChunked):
-                raise ValueError("Erreur de chunk")
+                raise TypeError("Erreur de type pour le chunk")
             regulations = chunked.sections
             regulations = [section.model_dump() for section in regulations]
             self.llm_params["chunk_type"] = "llm"
-        except Exception:
+        except Exception:  # noqa: BLE001
             regulations = chunk_page_regulations(texte=text)
             self.llm_params["chunk_type"] = "nlp"
-        
+
         if not regulations and text.strip():
             page_num = state.get("current_page_num", 0) + 1
             regulations = [{"titre": f"Section Page {page_num}", "contenu": text[:1500]}]
@@ -355,14 +344,11 @@ class CheckPlanerAgent:
 
         # Appliquer wrap text à toutes les cellules
         for row in ws.iter_rows():
-
             for cell in row:
                 cell.alignment = Alignment(wrap_text=True, vertical="center")
 
         for cell in ws[1]:
-            cell.alignment = Alignment(
-                horizontal="center", vertical="center", wrap_text=True
-            )
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
         # Sauvegarder
         wb.save(file_path)
@@ -380,18 +366,12 @@ class CheckPlanerAgent:
             return state
         try:
             logger.info("regulation ajouté dans excel")
-            if os.path.exists(output_file):
-                df = pd.read_excel(output_file)
-            else:
-                df = pd.read_excel(template_path)
+            df = pd.read_excel(output_file) if os.path.exists(output_file) else pd.read_excel(template_path)
 
             if COL_CONTROLE not in df.columns:
                 df[COL_CONTROLE] = []
 
-            if df.empty or df[COL_CONTROLE].isnull().all():
-                prochain_num = 1
-            else:
-                prochain_num = int(df[COL_CONTROLE].max()) + 1
+            prochain_num = 1 if df.empty or df[COL_CONTROLE].isnull().all() else int(df[COL_CONTROLE].max()) + 1
 
             nouvelle_next = {
                 COL_CONTROLE: prochain_num,
@@ -399,16 +379,10 @@ class CheckPlanerAgent:
                 "Objectif": regulation_line.get("objectif", ""),
                 "Documents de Référence": regulation_line.get("document_reference", ""),
                 "Fréquence": regulation_line.get("frequence", ""),
-                "Critères de Conformité": regulation_line.get(
-                    "criteres_conformite", ""
-                ),
+                "Critères de Conformité": regulation_line.get("criteres_conformite", ""),
                 "Documents Requis": regulation_line.get("documents_requis", ""),
-                "Détails et Explications pour le Contrôleur": regulation_line.get(
-                    "detail_explication", ""
-                ),
-                "Points spécifiques à contrôler avec détails": regulation_line.get(
-                    "points_specifiques", ""
-                ),
+                "Détails et Explications pour le Contrôleur": regulation_line.get("detail_explication", ""),
+                "Points spécifiques à contrôler avec détails": regulation_line.get("points_specifiques", ""),
             }
 
             # Ajouter au DataFrame
@@ -420,9 +394,7 @@ class CheckPlanerAgent:
                 if parent_dir:
                     os.makedirs(parent_dir, exist_ok=True)
             df.to_excel(output_file, index=False)
-            logger.info(
-                f"Ligne ajoutée avec N° {prochain_num} et sauvegardée dans {output_file}"
-            )
+            logger.info(f"Ligne ajoutée avec N° {prochain_num} et sauvegardée dans {output_file}")
             return {**state, "rg_num": state.get("rg_num", 0) + 1}
         except Exception:
             logger.exception("Exception lors de l'ajout dans Excel")
@@ -455,23 +427,18 @@ class CheckPlanerAgent:
 
         try:
             return await self.graph.ainvoke(init_state, {"recursion_limit": 10000})
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return {
-                "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf','.xlsx')}",
+                "output_file": f"{plan_folder}/plan_de_controle_{filename.lower().replace('.pdf', '.xlsx')}",
                 "error": str(e),
             }
 
     def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:
             self.llm_params["iteration"] = 0
-            self.llm_params["type"] = (
-                "gemini" if self.llm_params["type"] == "groq" else "groq"
-            )
+            self.llm_params["type"] = "gemini" if self.llm_params["type"] == "groq" else "groq"
 
-        if self.llm_params["type"] == "groq":
-            llm = get_llm_groq()
-        else:
-            llm = get_llm_gemini()
+        llm = get_llm_groq() if self.llm_params["type"] == "groq" else get_llm_gemini()
 
         if llm is None:
             llm = get_llm_gemini()
@@ -509,9 +476,7 @@ class CheckPlanerAgent:
             points_specifiques="Vérification des ratios réglementaires.",
         )
 
-    @backoff.on_exception(
-        backoff.expo, (ResourceExhausted, Exception), max_tries=2, max_time=10, jitter=None
-    )
+    @backoff.on_exception(backoff.expo, (ResourceExhausted, Exception), max_tries=2, max_time=10, jitter=None)
     async def _safe_invoke(self, full_messages):
         """Invoke the LLM with quota-aware retry and graceful fallback."""
         self.llm_params["iteration"] += 1

@@ -4,13 +4,12 @@ import functools
 import json
 import typing
 from decimal import Decimal
-from typing import Any, Dict, List, Tuple, Union, get_args
+from typing import Any, Union, get_args, get_origin
 
 import httpx
 import typing_extensions
 from pydantic import ConfigDict, create_model
 from pydantic_core import from_json
-from typing_extensions import get_origin
 
 from ..types.basemodel import BaseModel, Nullable, OptionalNullable, Unset
 
@@ -178,23 +177,17 @@ def is_nullable(field):
     if origin is Nullable or origin is OptionalNullable:
         return True
 
-    if not origin is Union or type(None) not in get_args(field):
+    if origin is not Union or type(None) not in get_args(field):
         return False
 
-    for arg in get_args(field):
-        if get_origin(arg) is Nullable or get_origin(arg) is OptionalNullable:
-            return True
-
-    return False
+    return any(get_origin(arg) is Nullable or get_origin(arg) is OptionalNullable for arg in get_args(field))
 
 
 def is_union(obj: object) -> bool:
     """
     Returns True if the given object is a typing.Union or typing_extensions.Union.
     """
-    return any(
-        obj is typing_obj for typing_obj in _get_typing_objects_by_name_of("Union")
-    )
+    return any(obj is typing_obj for typing_obj in _get_typing_objects_by_name_of("Union"))
 
 
 def stream_to_text(stream: httpx.Response) -> str:
@@ -223,27 +216,21 @@ def get_pydantic_model(data: Any, typ: Any) -> Any:
 def _contains_pydantic_model(data: Any) -> bool:
     if isinstance(data, BaseModel):
         return True
-    if isinstance(data, List):
+    if isinstance(data, list):
         return any(_contains_pydantic_model(item) for item in data)
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         return any(_contains_pydantic_model(value) for value in data.values())
 
     return False
 
 
 @functools.cache
-def _get_typing_objects_by_name_of(name: str) -> Tuple[Any, ...]:
+def _get_typing_objects_by_name_of(name: str) -> tuple[Any, ...]:
     """
     Get typing objects by name from typing and typing_extensions.
     Reference: https://typing-extensions.readthedocs.io/en/latest/#runtime-use-of-types
     """
-    result = tuple(
-        getattr(module, name)
-        for module in (typing, typing_extensions)
-        if hasattr(module, name)
-    )
+    result = tuple(getattr(module, name) for module in (typing, typing_extensions) if hasattr(module, name))
     if not result:
-        raise ValueError(
-            f"Neither typing nor typing_extensions has an object called {name!r}"
-        )
+        raise ValueError(f"Neither typing nor typing_extensions has an object called {name!r}")
     return result

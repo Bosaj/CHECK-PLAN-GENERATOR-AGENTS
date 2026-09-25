@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, NotRequired
 
 import pydantic
+from typing_extensions import TypedDict
+
 from checkplan_client.types import BaseModel
-from typing_extensions import Annotated, NotRequired, TypedDict
 
 
 class HelloOutputTypedDict(TypedDict):
@@ -14,4 +15,4 @@ class HelloOutputTypedDict(TypedDict):
 
 
 class HelloOutput(BaseModel):
-    message: Annotated[Optional[str], pydantic.Field(alias="Message")] = ""
+    message: Annotated[str | None, pydantic.Field(alias="Message")] = ""

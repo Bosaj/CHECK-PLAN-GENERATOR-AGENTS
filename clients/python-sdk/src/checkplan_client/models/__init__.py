@@ -8,11 +8,17 @@ if TYPE_CHECKING:
     from .agentresult import AgentResult, AgentResultTypedDict
     from .body_check_plan_generator_generate_post import (
         BodyCheckPlanGeneratorGeneratePost,
-        BodyCheckPlanGeneratorGeneratePostTypedDict, Reglements,
-        ReglementsTypedDict)
+        BodyCheckPlanGeneratorGeneratePostTypedDict,
+        Reglements,
+        ReglementsTypedDict,
+    )
     from .hellooutput import HelloOutput, HelloOutputTypedDict
-    from .validationerror import (Loc, LocTypedDict, ValidationError,
-                                  ValidationErrorTypedDict)
+    from .validationerror import (
+        Loc,
+        LocTypedDict,
+        ValidationError,
+        ValidationErrorTypedDict,
+    )
 
 __all__ = [
     "AgentResult",
@@ -48,22 +54,16 @@ _dynamic_imports: dict[str, str] = {
 def __getattr__(attr_name: str) -> object:
     module_name = _dynamic_imports.get(attr_name)
     if module_name is None:
-        raise AttributeError(
-            f"No {attr_name} found in _dynamic_imports for module name -> {__name__} "
-        )
+        raise AttributeError(f"No {attr_name} found in _dynamic_imports for module name -> {__name__} ")
 
     try:
         module = import_module(module_name, __package__)
         result = getattr(module, attr_name)
         return result
     except ImportError as e:
-        raise ImportError(
-            f"Failed to import {attr_name} from {module_name}: {e}"
-        ) from e
+        raise ImportError(f"Failed to import {attr_name} from {module_name}: {e}") from e
     except AttributeError as e:
-        raise AttributeError(
-            f"Failed to get {attr_name} from {module_name}: {e}"
-        ) from e
+        raise AttributeError(f"Failed to get {attr_name} from {module_name}: {e}") from e
 
 
 def __dir__():

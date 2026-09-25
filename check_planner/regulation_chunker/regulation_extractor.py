@@ -5,35 +5,24 @@ try:
     import spacy
 
     nlp = spacy.load("fr_core_news_sm")
-except Exception:
+except Exception:  # noqa: BLE001
     nlp = None
 
 
 class RegulationExtractor:
-
     def __init__(self):
 
         self.patterns: dict[str, re.Pattern] = {
             # 1. Titre, 1) Titre, 1- Titre, 15. Titre, 3 Titre
-            "numerique": re.compile(
-                r"^\s*(?P<num>\d+(?:\.\d+)*[\.\)\-]?|\d+)\s+(?P<title>.+?)\s*$"
-            ),
+            "numerique": re.compile(r"^\s*(?P<num>\d+(?:\.\d+)*[\.\)\-]?|\d+)\s+(?P<title>.+?)\s*$"),
             # 1.1. Titre, 2.3.4) Titre, 1.2.3.4- Titre (min 2 niveaux)
-            "numerique_hierarchique": re.compile(
-                r"^\s*(?P<num>\d+(?:\.\d+){1,})[\.\)\-]?\s+(?P<title>.+?)\s*$"
-            ),
+            "numerique_hierarchique": re.compile(r"^\s*(?P<num>\d+(?:\.\d+){1,})[\.\)\-]?\s+(?P<title>.+?)\s*$"),
             # A. Titre, a) Titre, B- Titre
-            "alphabetique": re.compile(
-                r"^\s*(?P<num>[A-Za-z])[\.\)\-]?\s+(?P<title>.+?)\s*$"
-            ),
+            "alphabetique": re.compile(r"^\s*(?P<num>[A-Za-z])[\.\)\-]?\s+(?P<title>.+?)\s*$"),
             # AA. Titre, BB- Titre (deux lettres majuscules)
-            "alphabetique_double": re.compile(
-                r"^\s*(?P<num>[A-Z]{2})[\.\)\-]?\s+(?P<title>.+?)\s*$"
-            ),
+            "alphabetique_double": re.compile(r"^\s*(?P<num>[A-Z]{2})[\.\)\-]?\s+(?P<title>.+?)\s*$"),
             # A1. Titre, B2) Titre, A1.1- Titre (alph-num simple ou hiérarchique)
-            "mixte_alpha_num": re.compile(
-                r"^\s*(?P<num>[A-Z]\d+(?:\.\d+)?)[\.\)\-]?\s+(?P<title>.+?)\s*$"
-            ),
+            "mixte_alpha_num": re.compile(r"^\s*(?P<num>[A-Z]\d+(?:\.\d+)?)[\.\)\-]?\s+(?P<title>.+?)\s*$"),
             # Romains : I. Titre, II) Titre, IV- Titre (majuscules uniquement)
             "romain": re.compile(
                 r"^\s*"
@@ -82,12 +71,12 @@ class RegulationExtractor:
 
         # Indicateurs (heuristiques)
         self.indicateurs_titre = [
-            lambda l: l.isupper() and len(l) > 5,  # beaucoup de MAJ
-            lambda l: l.endswith(":") and len(l) > 5,
-            lambda l: l.count(" ") <= 6 and len(l) > 5,  # court
-            lambda l: bool(re.search(r"\*\*.+\*\*", l)),  # **gras**
-            lambda l: bool(re.search(r"^#{1,6}\s+", l)),  # # markdown
-            lambda l: self._upper_ratio(l) >= 0.7,  # ratio MAJ élevé
+            lambda line: line.isupper() and len(line) > 5,  # beaucoup de MAJ
+            lambda line: line.endswith(":") and len(line) > 5,
+            lambda line: line.count(" ") <= 6 and len(line) > 5,  # court
+            lambda line: bool(re.search(r"\*\*.+\*\*", line)),  # **gras**
+            lambda line: bool(re.search(r"^#{1,6}\s+", line)),  # # markdown
+            lambda line: self._upper_ratio(line) >= 0.7,  # ratio MAJ élevé
         ]
 
         self.indicateurs_tableau = {
@@ -104,31 +93,29 @@ class RegulationExtractor:
         return upp / len(s2)
 
     @staticmethod
-    def _normalize_line(l: str) -> str:
-        return re.sub(r"\s+", " ", l.strip())
+    def _normalize_line(line: str) -> str:
+        return re.sub(r"\s+", " ", line.strip())
 
-    def est_ligne_tableau(
-        self, ligne: str, contexte: list[str] | None = None
-    ) -> bool:
+    def est_ligne_tableau(self, ligne: str, contexte: list[str] | None = None) -> bool:
         """Heuristiques pour ignorer le contenu de type tableau / décoratif."""
-        l = ligne.strip()
+        cleaned_line = ligne.strip()
 
         # Exclusions directes (règles markdown, images, code)
         for p in self.patterns_exclusion.values():
-            if p.match(l):
+            if p.match(cleaned_line):
                 return True
 
         # Séparateurs ou structures tabulaires visibles
-        if re.search(r"[\t|]{2,}", l):
+        if re.search(r"[\t|]{2,}", cleaned_line):
             return True
 
         # Beaucoup de chiffres / % / colonnes
-        nb_chiffres = len(re.findall(r"\d", l))
-        nb_lettres = len(re.findall(r"[A-Za-z]", l))
+        nb_chiffres = len(re.findall(r"\d", cleaned_line))
+        nb_lettres = len(re.findall(r"[A-Za-z]", cleaned_line))
         if nb_chiffres > 0 and nb_chiffres >= max(1, nb_lettres) * 0.7:
             return True
 
-        if re.search(r"-?\d+(?:[.,]\d+)?\s*%.*-?\d+(?:[.,]\d+)?\s*%", l):
+        if re.search(r"-?\d+(?:[.,]\d+)?\s*%.*-?\d+(?:[.,]\d+)?\s*%", cleaned_line):
             return True
 
         # Contexte
@@ -147,7 +134,6 @@ class RegulationExtractor:
         """
         Retourne: (est_titre, type_pattern, numero, titre)
         """
-        raw = ligne
         ligne = self._normalize_line(ligne)
         if len(ligne) < 3:
             return False, None, None, None
@@ -155,9 +141,7 @@ class RegulationExtractor:
         # Contexte
         start = max(0, index - 3)
         end = min(len(lignes), index + 4)
-        contexte = [
-            self._normalize_line(lignes[i]) for i in range(start, end) if i != index
-        ]
+        contexte = [self._normalize_line(lignes[i]) for i in range(start, end) if i != index]
 
         # Écarter les lignes de tableau
         if self.est_ligne_tableau(ligne, contexte):
@@ -202,9 +186,7 @@ class RegulationExtractor:
         ok, _, num, title = self.detecter_titre_avec_contexte(ligne, 0, [ligne])
         return ok, num, title
 
-    def _niveau_depuis_numero(
-        self, type_nom: str | None, numero: str | None
-    ) -> int:
+    def _niveau_depuis_numero(self, type_nom: str | None, numero: str | None) -> int:
         """
         Estime un niveau hiérarchique à partir du type de pattern et du numéro détecté.
         - numerique_hierarchique: profondeur du nombre de points (1.2.3 -> niveau 3)
@@ -228,7 +210,7 @@ class RegulationExtractor:
         if not texte or not texte.strip():
             return []
 
-        lignes = [l for l in (texte.splitlines())]
+        lignes = texte.splitlines()
         sections: list[dict] = []
         cur_titre = None
         cur_num = None
@@ -236,10 +218,8 @@ class RegulationExtractor:
         cur_niveau = 1
         buf: list[str] = []
 
-        for i, l in enumerate(lignes):
-            ok, type_nom, numero, titre = self.detecter_titre_avec_contexte(
-                l, i, lignes
-            )
+        for i, line_item in enumerate(lignes):
+            ok, type_nom, numero, titre = self.detecter_titre_avec_contexte(line_item, i, lignes)
 
             if ok and titre:
                 # Sauver la section courante
@@ -251,9 +231,7 @@ class RegulationExtractor:
                             "numero": cur_num,
                             "titre": cur_titre,
                             "contenu": contenu,
-                            "nb_paragraphes": len(
-                                [p for p in contenu.split("\n") if p.strip()]
-                            ),
+                            "nb_paragraphes": len([p for p in contenu.split("\n") if p.strip()]),
                             "nb_mots": len(contenu.split()),
                             "niveau": cur_niveau,
                         }
@@ -266,7 +244,7 @@ class RegulationExtractor:
                 buf = []
             else:
                 # Contenu
-                buf.append(self._normalize_line(l))
+                buf.append(self._normalize_line(line_item))
 
         # Dernière section
         if cur_titre is not None:
@@ -277,9 +255,7 @@ class RegulationExtractor:
                     "numero": cur_num,
                     "titre": cur_titre,
                     "contenu": contenu,
-                    "nb_paragraphes": len(
-                        [p for p in contenu.split("\n") if p.strip()]
-                    ),
+                    "nb_paragraphes": len([p for p in contenu.split("\n") if p.strip()]),
                     "nb_mots": len(contenu.split()),
                     "niveau": cur_niveau,
                 }
@@ -291,8 +267,8 @@ class RegulationExtractor:
 
     @staticmethod
     def _normalize_block(text: str) -> str:
-        lines = [re.sub(r"\s+", " ", l).strip() for l in text.splitlines()]
-        lines = [l for l in lines if l]
+        lines = [re.sub(r"\s+", " ", line_text).strip() for line_text in text.splitlines()]
+        lines = [line_text for line_text in lines if line_text]
         return "\n".join(lines)
 
     @staticmethod
@@ -353,11 +329,7 @@ class RegulationExtractor:
                 continue
             doc = nlp(contenu)
             s["entites"] = [(e.text, e.label_) for e in doc.ents]
-            mots_cles = [
-                t.lemma_.lower()
-                for t in doc
-                if t.pos_ in ("NOUN", "ADJ") and not t.is_stop
-            ]
+            mots_cles = [t.lemma_.lower() for t in doc if t.pos_ in ("NOUN", "ADJ") and not t.is_stop]
             # Top 10 distincts
             seen = set()
             uniq = []

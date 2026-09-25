@@ -1,3 +1,3 @@
 from .agent import VerifierAgent
 
-__ALL__ = ["VerifierAgent"]
+__all__ = ["VerifierAgent"]

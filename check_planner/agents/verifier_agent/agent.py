@@ -7,9 +7,6 @@ from google.api_core.exceptions import ResourceExhausted
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.graph import END, StateGraph
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 from check_planner.agents.models import (
     LegislativeReference,
     RegulationControl,
@@ -19,9 +16,11 @@ from check_planner.agents.prompts import controle_systeme_prompt
 from check_planner.llm import get_llm_gemini, get_llm_groq, llm_groq
 from check_planner.retriever import retrieve_regulation
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class VerifierAgent:
-
     def __init__(self, llm: BaseChatModel = llm_groq):
         self.llm_params = {"iteration": 0, "type": "groq", "max": 20, "call": "verify"}
         self.llm_gen = llm.with_structured_output(RegulationControl)
@@ -73,7 +72,6 @@ class VerifierAgent:
         check_file = state["check_path"]
 
         if os.path.exists(check_file):
-
             df_data = pd.read_excel(check_file)
 
             data = df_data.fillna("").to_dict(orient="records")
@@ -95,20 +93,19 @@ class VerifierAgent:
         reg = self.regulations[state["current_rg_num"] - 1]
 
         if not all(reg.values()):
-
             self.regulations[state["current_rg_num"] - 1] = {}
 
             return state
 
         controle = f"""
-        Article / Objet du Contrôle: {reg['Article / Objet du Contrôle']}
-        Objectif: {reg['Objectif']}
-        Documents de Référence: {reg['Documents de Référence']}
-        Fréquence: {reg['Fréquence']}
-        Critères de Conformité: {reg['Critères de Conformité']}
-        Documents Requis: {reg['Documents Requis']}
-        Détails et Explications pour le Contrôleur: {reg['Détails et Explications pour le Contrôleur']}
-        Points spécifiques à contrôler avec détails: {reg['Points spécifiques à contrôler avec détails']}
+        Article / Objet du Contrôle: {reg["Article / Objet du Contrôle"]}
+        Objectif: {reg["Objectif"]}
+        Documents de Référence: {reg["Documents de Référence"]}
+        Fréquence: {reg["Fréquence"]}
+        Critères de Conformité: {reg["Critères de Conformité"]}
+        Documents Requis: {reg["Documents Requis"]}
+        Détails et Explications pour le Contrôleur: {reg["Détails et Explications pour le Contrôleur"]}
+        Points spécifiques à contrôler avec détails: {reg["Points spécifiques à contrôler avec détails"]}
         """
 
         try:
@@ -116,15 +113,11 @@ class VerifierAgent:
 
             self.llm_params["call"] = "verify"
 
-            LReference = await self._safe_invoke(
-                controle_systeme_prompt.format(controle=controle, retrieved=retrieved)
-            )
+            LReference = await self._safe_invoke(controle_systeme_prompt.format(controle=controle, retrieved=retrieved))
             if not isinstance(LReference, LegislativeReference):
-                raise ValueError("Reference recuperée n'est pas la forme entendu")
+                raise TypeError("Reference recuperée n'est pas la forme entendu")
 
-            self.regulations[state["current_rg_num"] - 1][
-                "Reference de Legislative (AMMC)"
-            ] = (
+            self.regulations[state["current_rg_num"] - 1]["Reference de Legislative (AMMC)"] = (
                 LReference.reference_text
                 if LReference.reference_text
                 else "Aucun passage réglementaire pertinent n'a été trouvé"
@@ -132,7 +125,7 @@ class VerifierAgent:
             logger.info("reference ajoutée avec success")
             return state
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.info(f"Erreur correction node: {e}")
             return state
 
@@ -149,19 +142,14 @@ class VerifierAgent:
 
         if self.regulations:
             try:
-
-                data = [
-                    {**line, "N° de Contrôle": idx + 1}
-                    for idx, line in enumerate(self.regulations)
-                    if line
-                ]
+                data = [{**line, "N° de Contrôle": idx + 1} for idx, line in enumerate(self.regulations) if line]
                 df = pd.DataFrame(data)
 
                 # Exporter en Excel
                 df.to_excel(output, index=False)
 
                 return state
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(f"Erreur au niveau de stockage: {e}")
         return state
 
@@ -203,12 +191,8 @@ class VerifierAgent:
 
         # Styles
         header_font = Font(bold=True, color="FFFFFF", size=11)
-        header_fill = PatternFill(
-            start_color="628e3d", end_color="628e3d", fill_type="solid"
-        )
-        alternate_fill = PatternFill(
-            start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"
-        )  # gris clair élégant
+        header_fill = PatternFill(start_color="628e3d", end_color="628e3d", fill_type="solid")
+        alternate_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")  # gris clair élégant
         border = Border(
             left=Side(style="thin"),
             right=Side(style="thin"),
@@ -226,9 +210,7 @@ class VerifierAgent:
                 if row_idx == 1:  # En-tête
                     cell.font = header_font
                     cell.fill = header_fill
-                    cell.alignment = Alignment(
-                        horizontal="center", vertical="center", wrap_text=True
-                    )
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                 else:  # Corps du tableau
                     if row_idx % 2 == 0:  # lignes paires uniquement
                         cell.fill = alternate_fill
@@ -264,33 +246,26 @@ class VerifierAgent:
             "current_rg_num": 0,
             "regulation": {},
             "max_regs": 0,
-            "output_file": f"{folder }/{filename.lower()}",
+            "output_file": f"{folder}/{filename.lower()}",
         }
         try:
             return await self.graph.ainvoke(init_state, {"recursion_limit": 10000000})
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Erreur lors de l'execution de l'agent: {e}")
-            return {"output_file": f"{folder }/{filename.lower()}", "error": str(e)}
+            return {"output_file": f"{folder}/{filename.lower()}", "error": str(e)}
 
     async def _rotate_llm(self):
         if self.llm_params["iteration"] >= self.llm_params["max"]:
             self.llm_params["iteration"] = 0
 
-            self.llm_params["type"] = (
-                "gemini" if self.llm_params["type"] == "groq" else "groq"
-            )
+            self.llm_params["type"] = "gemini" if self.llm_params["type"] == "groq" else "groq"
 
-        if self.llm_params["type"] == "groq":
-            llm = get_llm_groq()
-        else:
-            llm = get_llm_gemini()
+        llm = get_llm_groq() if self.llm_params["type"] == "groq" else get_llm_gemini()
 
         self.llm_gen = llm.with_structured_output(RegulationControl)
         self.controle_llm = llm.with_structured_output(LegislativeReference)
 
-    @backoff.on_exception(
-        backoff.expo, (ResourceExhausted, Exception), max_tries=7, jitter=None
-    )
+    @backoff.on_exception(backoff.expo, (ResourceExhausted, Exception), max_tries=7, jitter=None)
     async def _safe_invoke(self, full_messages):
         try:
             self.llm_params["iteration"] += 1
@@ -298,11 +273,11 @@ class VerifierAgent:
                 return await self.controle_llm.ainvoke(full_messages)
             else:
                 return await self.llm_gen.ainvoke(full_messages)
-        except ResourceExhausted as e:
+        except ResourceExhausted:
             logger.warning("[Quota] Clé API dépassée, on change...")
             await self._rotate_llm()
-            raise e
+            raise
         except Exception as e:
             logger.error(f"[Erreur] {e}, on essaye un autre LLM...")
             await self._rotate_llm()
-            raise e
+            raise

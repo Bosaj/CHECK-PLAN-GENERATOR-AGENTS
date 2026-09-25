@@ -1,7 +1,9 @@
 """
 Integration tests for FastAPI endpoints in check_planner.
 """
+
 from fastapi.testclient import TestClient
+
 from check_planner import app
 
 client = TestClient(app)

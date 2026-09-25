@@ -2,11 +2,11 @@ import logging
 import os
 import secrets
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv(override=True)
 
@@ -20,11 +20,7 @@ def get_llm_groq(
 
     load_dotenv(env_path, override=False)
     dotenv_dict = dotenv_values(env_path) if os.path.exists(env_path) else {}
-    api_keys = [
-        value
-        for key, value in dotenv_dict.items()
-        if key.startswith("GROQ_API_KEY") and value
-    ]
+    api_keys = [value for key, value in dotenv_dict.items() if key.startswith("GROQ_API_KEY") and value]
 
     if not api_keys and os.getenv("GROQ_API_KEY"):
         api_keys = [os.getenv("GROQ_API_KEY")]
@@ -48,7 +44,7 @@ def get_llm_groq(
             api_key=selected_key,
         )
     except Exception:
-        logging.exception("Erreur lors de l'initialisation de Groq LLM")
+        logger.exception("Erreur lors de l'initialisation de Groq LLM")
         return None
 
 

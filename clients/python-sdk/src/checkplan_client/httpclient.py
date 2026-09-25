@@ -2,7 +2,8 @@
 
 # pyright: reportReturnType = false
 import asyncio
-from typing import Any, Optional, Union
+import contextlib
+from typing import Any
 
 import httpx
 from typing_extensions import Protocol, runtime_checkable
@@ -15,12 +16,8 @@ class HttpClient(Protocol):
         request: httpx.Request,
         *,
         stream: bool = False,
-        auth: Union[
-            httpx._types.AuthTypes, httpx._client.UseClientDefault, None
-        ] = httpx.USE_CLIENT_DEFAULT,
-        follow_redirects: Union[
-            bool, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
+        auth: httpx._types.AuthTypes | httpx._client.UseClientDefault | None = httpx.USE_CLIENT_DEFAULT,
+        follow_redirects: bool | httpx._client.UseClientDefault = httpx.USE_CLIENT_DEFAULT,
     ) -> httpx.Response:
         pass
 
@@ -29,17 +26,15 @@ class HttpClient(Protocol):
         method: str,
         url: httpx._types.URLTypes,
         *,
-        content: Optional[httpx._types.RequestContent] = None,
-        data: Optional[httpx._types.RequestData] = None,
-        files: Optional[httpx._types.RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[httpx._types.QueryParamTypes] = None,
-        headers: Optional[httpx._types.HeaderTypes] = None,
-        cookies: Optional[httpx._types.CookieTypes] = None,
-        timeout: Union[
-            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
-        extensions: Optional[httpx._types.RequestExtensions] = None,
+        content: httpx._types.RequestContent | None = None,
+        data: httpx._types.RequestData | None = None,
+        files: httpx._types.RequestFiles | None = None,
+        json: Any | None = None,
+        params: httpx._types.QueryParamTypes | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        cookies: httpx._types.CookieTypes | None = None,
+        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx.USE_CLIENT_DEFAULT,
+        extensions: httpx._types.RequestExtensions | None = None,
     ) -> httpx.Request:
         pass
 
@@ -54,12 +49,8 @@ class AsyncHttpClient(Protocol):
         request: httpx.Request,
         *,
         stream: bool = False,
-        auth: Union[
-            httpx._types.AuthTypes, httpx._client.UseClientDefault, None
-        ] = httpx.USE_CLIENT_DEFAULT,
-        follow_redirects: Union[
-            bool, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
+        auth: httpx._types.AuthTypes | httpx._client.UseClientDefault | None = httpx.USE_CLIENT_DEFAULT,
+        follow_redirects: bool | httpx._client.UseClientDefault = httpx.USE_CLIENT_DEFAULT,
     ) -> httpx.Response:
         pass
 
@@ -68,17 +59,15 @@ class AsyncHttpClient(Protocol):
         method: str,
         url: httpx._types.URLTypes,
         *,
-        content: Optional[httpx._types.RequestContent] = None,
-        data: Optional[httpx._types.RequestData] = None,
-        files: Optional[httpx._types.RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[httpx._types.QueryParamTypes] = None,
-        headers: Optional[httpx._types.HeaderTypes] = None,
-        cookies: Optional[httpx._types.CookieTypes] = None,
-        timeout: Union[
-            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
-        extensions: Optional[httpx._types.RequestExtensions] = None,
+        content: httpx._types.RequestContent | None = None,
+        data: httpx._types.RequestData | None = None,
+        files: httpx._types.RequestFiles | None = None,
+        json: Any | None = None,
+        params: httpx._types.QueryParamTypes | None = None,
+        headers: httpx._types.HeaderTypes | None = None,
+        cookies: httpx._types.CookieTypes | None = None,
+        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx.USE_CLIENT_DEFAULT,
+        extensions: httpx._types.RequestExtensions | None = None,
     ) -> httpx.Request:
         pass
 
@@ -87,15 +76,15 @@ class AsyncHttpClient(Protocol):
 
 
 class ClientOwner(Protocol):
-    client: Union[HttpClient, None]
-    async_client: Union[AsyncHttpClient, None]
+    client: HttpClient | None
+    async_client: AsyncHttpClient | None
 
 
 def close_clients(
     owner: ClientOwner,
-    sync_client: Union[HttpClient, None],
+    sync_client: HttpClient | None,
     sync_client_supplied: bool,
-    async_client: Union[AsyncHttpClient, None],
+    async_client: AsyncHttpClient | None,
     async_client_supplied: bool,
 ) -> None:
     """
@@ -110,10 +99,8 @@ def close_clients(
     owner.async_client = None
 
     if sync_client is not None and not sync_client_supplied:
-        try:
+        with contextlib.suppress(Exception):
             sync_client.close()
-        except Exception:
-            pass
 
     if async_client is not None and not async_client_supplied:
         try:

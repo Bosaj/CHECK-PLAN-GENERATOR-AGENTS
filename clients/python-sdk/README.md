@@ -100,7 +100,7 @@ It's also possible to write a standalone Python script without needing to set up
 from checkplan_client import SDK
 
 sdk = SDK(
-  # SDK arguments
+    # SDK arguments
 )
 
 # Rest of script here...
@@ -133,10 +133,11 @@ from checkplan_client import SDK
 with SDK(
     server_url="https://api.example.com",
 ) as sdk:
-
-    res = sdk.generate(request={
-        "reglements": [],
-    })
+    res = sdk.generate(
+        request={
+            "reglements": [],
+        }
+    )
 
     assert res is not None
 
@@ -152,20 +153,23 @@ The same SDK client can also be used to make asynchronous requests by importing 
 import asyncio
 from checkplan_client import SDK
 
+
 async def main():
 
     async with SDK(
         server_url="https://api.example.com",
     ) as sdk:
-
-        res = await sdk.generate_async(request={
-            "reglements": [],
-        })
+        res = await sdk.generate_async(
+            request={
+                "reglements": [],
+            }
+        )
 
         assert res is not None
 
         # Handle response
         print(res)
+
 
 asyncio.run(main())
 ```
@@ -202,16 +206,16 @@ from checkplan_client import SDK
 with SDK(
     server_url="https://api.example.com",
 ) as sdk:
-
-    res = sdk.generate(request={
-        "reglements": [],
-    })
+    res = sdk.generate(
+        request={
+            "reglements": [],
+        }
+    )
 
     assert res is not None
 
     # Handle response
     print(res)
-
 ```
 <!-- End File uploads [file-upload] -->
 
@@ -252,16 +256,16 @@ with SDK(
     server_url="https://api.example.com",
     retry_config=RetryConfig("backoff", BackoffStrategy(1, 50, 1.1, 100), False),
 ) as sdk:
-
-    res = sdk.generate(request={
-        "reglements": [],
-    })
+    res = sdk.generate(
+        request={
+            "reglements": [],
+        }
+    )
 
     assert res is not None
 
     # Handle response
     print(res)
-
 ```
 <!-- End Retries [retries] -->
 
@@ -289,16 +293,16 @@ with SDK(
 ) as sdk:
     res = None
     try:
-
-        res = sdk.generate(request={
-            "reglements": [],
-        })
+        res = sdk.generate(
+            request={
+                "reglements": [],
+            }
+        )
 
         assert res is not None
 
         # Handle response
         print(res)
-
 
     except errors.SDKBaseError as e:
         # The base class for HTTP error responses
@@ -358,6 +362,7 @@ from checkplan_client import SDK
 from checkplan_client.httpclient import AsyncHttpClient
 import httpx
 
+
 class CustomClient(AsyncHttpClient):
     client: AsyncHttpClient
 
@@ -369,18 +374,12 @@ class CustomClient(AsyncHttpClient):
         request: httpx.Request,
         *,
         stream: bool = False,
-        auth: Union[
-            httpx._types.AuthTypes, httpx._client.UseClientDefault, None
-        ] = httpx.USE_CLIENT_DEFAULT,
-        follow_redirects: Union[
-            bool, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
+        auth: Union[httpx._types.AuthTypes, httpx._client.UseClientDefault, None] = httpx.USE_CLIENT_DEFAULT,
+        follow_redirects: Union[bool, httpx._client.UseClientDefault] = httpx.USE_CLIENT_DEFAULT,
     ) -> httpx.Response:
         request.headers["Client-Level-Header"] = "added by client"
 
-        return await self.client.send(
-            request, stream=stream, auth=auth, follow_redirects=follow_redirects
-        )
+        return await self.client.send(request, stream=stream, auth=auth, follow_redirects=follow_redirects)
 
     def build_request(
         self,
@@ -394,9 +393,7 @@ class CustomClient(AsyncHttpClient):
         params: Optional[httpx._types.QueryParamTypes] = None,
         headers: Optional[httpx._types.HeaderTypes] = None,
         cookies: Optional[httpx._types.CookieTypes] = None,
-        timeout: Union[
-            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
-        ] = httpx.USE_CLIENT_DEFAULT,
+        timeout: Union[httpx._types.TimeoutTypes, httpx._client.UseClientDefault] = httpx.USE_CLIENT_DEFAULT,
         extensions: Optional[httpx._types.RequestExtensions] = None,
     ) -> httpx.Request:
         return self.client.build_request(
@@ -412,6 +409,7 @@ class CustomClient(AsyncHttpClient):
             timeout=timeout,
             extensions=extensions,
         )
+
 
 s = SDK(async_client=CustomClient(httpx.AsyncClient()))
 ```
